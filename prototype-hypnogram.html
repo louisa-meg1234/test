@@ -1087,7 +1087,7 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
     if (isOpen) {
       full.innerHTML = stairs(hStart);
       document.getElementById('hypno-title-name').textContent = dayTitle(hStart);
-      function stamp(t) { var d = new Date(t); return '<span>' + fmtDate(d) + '</span><span>' + fmtHour(d) + '</span>'; }
+      function stamp(t) { return '<span>' + fmtHour(new Date(t)) + '</span>'; }  // hour only: the day(s) are in the title
       document.getElementById('night-begin').innerHTML = stamp(hStart);
       document.getElementById('night-end').innerHTML = stamp(hStart + H12);
       document.getElementById('hypno-prev').disabled = !pageOk(hStart - H12);
