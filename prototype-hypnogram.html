@@ -258,23 +258,22 @@ img { display: block; max-width: none; }
 /* Full hypnogram (10555:34770): 2px in from each side; it reaches up so that its outline sits 2px below the Signals,
    as in Figma (outline at 856, Signals end at 854). Its blue outline is drawn by .hypno-union with the active condensed hypnogram */
 .hypno-full {
-  position: absolute; left: 2px; right: 2px; top: -1px; height: 59px; z-index: 1;
+  position: absolute; left: 12px; right: 13px; top: -1px; height: 59px; z-index: 1;  /* 10714:1820: x 13 → 1906 of 1920 */
   box-sizing: border-box;
   display: block; background: linear-gradient(rgba(73, 184, 237, 0.02), rgba(73, 184, 237, 0.02)), var(--white);
 }
 /* Stair view ("Full 2nd hypnogramm + vectors - stair view", 10453:64873): one level per stage, top to bottom
    Wake, REM, N1, N2, N3; 4px stage lines, 1px grey risers between levels, dotted guide per level */
-.hypno.stairs { display: block; position: absolute; left: 1px; right: 1px; top: 3px; height: 39px; width: auto; }
-/* "Full 2nd hypnogramm + vectors - stair view" (10686:44099): 12h of time, 12px in from each side of the box (the arrows sit
-   in those gutters), 0.5px light-blue edges top to bottom */
-.hypno-plot { position: absolute; left: 12px; right: 12px; top: 0; bottom: 0; box-sizing: border-box;
-  border: solid #c9eafa; border-width: 0 0.5px; }
+.hypno.stairs { display: block; position: absolute; left: 1px; right: 1px; top: 4px; height: 39px; width: auto; }
+/* "Full 2nd hypnogramm + vectors - stair view" (10686:44099): 12h of time across the whole box, 1px in from each side */
+.hypno-plot { position: absolute; left: 0; right: 0; top: 0; bottom: 0; }
 .hypno.stairs i.gap { cursor: default; }
 /* "Navigation arrows" (10714:1819): previous / next 12h; Play icon (mirrored on the left) */
 .hypno-nav { position: absolute; top: 19px; width: 12px; height: 14px; padding: 0; border: 0; background: none; cursor: pointer; z-index: 2; }
 .hypno-nav img { display: block; width: 12px; height: 14px; }
-.hypno-nav.prev { left: 0; } .hypno-nav.prev img { transform: scaleX(-1); }
-.hypno-nav.next { right: 0; }
+/* "Navigation arrows" (10716:25106): outside the box, in the margins at the screen's left and right edges */
+.hypno-nav.prev { left: -13px; } .hypno-nav.prev img { transform: scaleX(-1); }
+.hypno-nav.next { right: -14px; }
 .hypno-nav:disabled { opacity: 0.3; cursor: default; }
 .hypno-nav:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 2px; }
 .stairs .guide { position: absolute; left: 0; right: 0; height: 1.2px; margin-top: -0.6px;
@@ -299,14 +298,14 @@ img { display: block; max-width: none; }
 .sw-marker[hidden] { display: none; }
 /* "Hypnogram title" (10550:34639) on the top-left edge of the full hypnogram: white "Nuit n" tab, then the blue
    "close hypnogram" tab (10507:23813); both 18px high, over the bottom-left of the Signals and sitting on the hypnogram's outline */
-.hypno-title { position: absolute; left: 2px; top: -20.5px; z-index: 3; display: flex; height: 18px; }
+.hypno-title { position: absolute; left: 13px; top: -18.5px; z-index: 3; display: flex; height: 16px; }
 .hypno-title-name {
-  box-sizing: border-box; height: 18px; padding: 0 3px; display: flex; align-items: center;
+  box-sizing: border-box; height: 16px; padding: 0 3px; display: flex; align-items: center;
   border: 1px solid var(--accent); border-radius: 2px 0 0 0; background: var(--white);
   font-size: 12px; font-weight: 500; letter-spacing: 0.18px; line-height: 8px; color: #000; white-space: nowrap;
 }
 .hypno-close {
-  width: 18px; height: 18px; padding: 0; border: 0;
+  width: 16px; height: 16px; padding: 0; border: 0;
   border-radius: 0 2px 0 0; background: var(--accent); cursor: pointer; display: grid; place-items: center;
 }
 /* "Date container" (10710:47921): a 13px row under the stair plot, 1px above the bottom of the hypnogram, start of the 12h window on the left and
@@ -705,7 +704,7 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
     <div class="hypno-full" data-node-id="10714:1820"><div class="hypno-plot" data-node-id="10686:44099"><div class="hypno stairs" id="hypno-full"></div></div><button type="button" class="hypno-nav prev" id="hypno-prev" aria-label="12 h précédentes"><img src="assets/hypno12-arrow.svg" alt=""></button><button type="button" class="hypno-nav next" id="hypno-next" aria-label="12 h suivantes"><img src="assets/hypno12-arrow.svg" alt=""></button><span class="night-date begin" id="night-begin" data-node-id="10555:34859"></span><span class="night-date end" id="night-end" data-node-id="10555:34853"></span></div>
     <div class="hypno-title" data-node-id="10550:34639">
       <span class="hypno-title-name" id="hypno-title-name" data-node-id="10550:34629">Nuit 1</span>
-      <button type="button" class="hypno-close" id="hypno-close" data-node-id="10507:23813" aria-label="Fermer l’hypnogramme"><svg width="10.18" height="10.18" viewBox="0 0 10.18 10.18" fill="none" aria-hidden="true"><path d="M0.75 0.75L9.43 9.43M9.43 0.75L0.75 9.43" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"/></svg></button>
+      <button type="button" class="hypno-close" id="hypno-close" data-node-id="10507:23813" aria-label="Fermer l’hypnogramme"><svg width="9.05" height="9.05" viewBox="0 0 10.18 10.18" fill="none" aria-hidden="true"><path d="M0.75 0.75L9.43 9.43M9.43 0.75L0.75 9.43" stroke="#ffffff" stroke-width="1.5" stroke-linecap="round"/></svg></button>
     </div>
     <span class="sw-marker" id="sw-marker" data-node-id="10409:25239" hidden><img src="assets/marker-signal-window-12h.svg" alt=""></span>
     <div class="stage-tip" id="stage-tip" role="tooltip" hidden>
@@ -1076,7 +1075,7 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
     tip.hidden = true;
     if (isOpen) {
       full.innerHTML = stairs(hStart);
-      document.getElementById('hypno-title-name').textContent = active >= 0 ? 'Nuit ' + (active + 1) : fmtDate(new Date(hStart + H12 / 2));
+      document.getElementById('hypno-title-name').textContent = dayTitle(hStart);
       function stamp(t) { var d = new Date(t); return '<span>' + fmtDate(d) + '</span><span>' + fmtHour(d) + '</span>'; }
       document.getElementById('night-begin').innerHTML = stamp(hStart);
       document.getElementById('night-end').innerHTML = stamp(hStart + H12);
@@ -1085,6 +1084,12 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
       drawVectors();
     }
     updateMarker();
+  }
+  // Title: the day(s) the 12h window covers, dd/mm/yyyy; "first day - next day" when it spans midnight
+  function dmy(t) { var d = new Date(t); return two(d.getUTCDate()) + '/' + two(d.getUTCMonth() + 1) + '/' + d.getUTCFullYear(); }
+  function dayTitle(w0) {
+    var a = dmy(w0), b = dmy(w0 + H12 - 1);  // end excluded: a window ending at 00:00 stays on its day
+    return a === b ? a : a + ' - ' + b;
   }
   function openWindow(w0) { isOpen = true; hStart = w0; active = nightIn(w0); renderFull(); }
   function closeFull() { isOpen = false; active = -1; renderFull(); }
@@ -1381,8 +1386,8 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
     var f = -1;
     if (isOpen) f = (view + SPAN * 500 - hStart) / H12;
     swMarker.hidden = !(f >= 0 && f <= 1);
-    // stairs run 15.5px in from each side of the timeline (box 2px, gutter 12px, edge 0.5px, padding 1px)
-    if (!swMarker.hidden) swMarker.style.left = 'calc(15.5px + (100% - 31px) * ' + f.toFixed(6) + ')';
+    // stairs run from 13px (box 12px + 1px) to 14px (box 13px + 1px) in from the timeline's sides
+    if (!swMarker.hidden) swMarker.style.left = 'calc(13px + (100% - 27px) * ' + f.toFixed(6) + ')';
   }
   // Clicking the fully displayed hypnogram centres the signal window on that moment of the night
   full.addEventListener('click', function (e) {
