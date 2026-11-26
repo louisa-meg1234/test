@@ -7,7 +7,7 @@
 <title>Sleep prototype - hypnogram</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@700&family=Ubuntu:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nunito:wght@700&family=Ubuntu:wght@400;500;700&family=Inter+Tight:wght@600&display=swap">
 <style>
 /* Layout: full-window app. Fixed-height Top Bar / Sleep timeline Group / Bottom Bar; Signals flexes to fill the rest.
    Horizontal positions inside Signals and the timeline are expressed as % of their container so they track the window width. */
@@ -264,7 +264,7 @@ img { display: block; max-width: none; }
 /* Full hypnogram (10555:34770): 2px in from each side; it reaches up so that its outline sits 2px below the Signals,
    as in Figma (outline at 856, Signals end at 854). Its blue outline is drawn by .hypno-union with the active condensed hypnogram */
 .hypno-full {
-  position: absolute; left: 12px; right: 13px; top: -1px; height: 59px; z-index: 1;  /* 10714:1820: x 13 → 1906 of 1920 */
+  position: absolute; left: 13px; right: 13px; top: -1px; height: 59px; z-index: 1;  /* 10714:1820: x 14 → 1906 of 1920, 2px clear of the arrows */
   box-sizing: border-box;
   display: block; background: linear-gradient(rgba(73, 184, 237, 0.02), rgba(73, 184, 237, 0.02)), var(--white);
 }
@@ -278,7 +278,7 @@ img { display: block; max-width: none; }
 .hypno-nav { position: absolute; top: 19px; width: 12px; height: 14px; padding: 0; border: 0; background: none; cursor: pointer; z-index: 2; }
 .hypno-nav img { display: block; width: 12px; height: 14px; }
 /* "Navigation arrows" (10716:25106): outside the box, in the margins at the screen's left and right edges */
-.hypno-nav.prev { left: -13px; } .hypno-nav.prev img { transform: scaleX(-1); }
+.hypno-nav.prev { left: -14px; } .hypno-nav.prev img { transform: scaleX(-1); }
 .hypno-nav.next { right: -14px; }
 .hypno-nav:disabled { opacity: 0.3; cursor: default; }
 .hypno-nav:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; border-radius: 2px; }
@@ -304,7 +304,7 @@ img { display: block; max-width: none; }
 .sw-marker[hidden] { display: none; }
 /* "Hypnogram title" (10550:34639) on the top-left edge of the full hypnogram: white "Nuit n" tab, then the blue
    "close hypnogram" tab (10507:23813); both 18px high, over the bottom-left of the Signals and sitting on the hypnogram's outline */
-.hypno-title { position: absolute; left: 13px; top: -18.5px; z-index: 3; display: flex; height: 16px; }
+.hypno-title { position: absolute; left: 14px; top: -18.5px; z-index: 3; display: flex; height: 16px; }
 .hypno-title-name {
   box-sizing: border-box; height: 16px; padding: 0 3px; display: flex; align-items: center;
   border: 1px solid var(--accent); border-radius: 2px 0 0 0; background: var(--white);
@@ -435,7 +435,7 @@ img { display: block; max-width: none; }
   flex: 0 0 var(--h-bottom);
   height: var(--h-bottom);
   box-sizing: border-box;
-  padding: 4px 19px 4px 10px;
+  padding: 0 19px 0 10px;  /* no vertical padding: the 46px Toggle Buttons fit the 48px bar */
   background: var(--white);
   border-top: 1px solid var(--grey-border-2);
   filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.15));
@@ -609,6 +609,33 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
 .bb-right { display: flex; align-items: center; gap: 40px; justify-self: end; }
 .toggle { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 500; line-height: 11px; color: var(--black); white-space: nowrap; }
 .toggle.qeeg { gap: 7px; }
+/* Toggle Button (10594:45700), used by every toggle: switch on top, icon + label below. Figma sizes count the 1px border
+   inside the padding: Default 10594:45696 (6px, light-blue border) · Hover 10594:45697 (4px + 2px light-blue inner panel) ·
+   Active = on, 10594:45699 (6px, blue border, switch on) · Unavailable 10594:45698 (4px, grey card, 28px grey switch) */
+.tg-btn {
+  box-sizing: border-box; padding: 5px; display: flex; align-items: center; justify-content: center; flex: none;
+  background: var(--white); border: 1px solid #c9eafa; border-radius: 8px; filter: drop-shadow(0 2px 4px rgba(110, 139, 200, 0.1));
+  cursor: pointer; font: inherit;
+}
+.tg-face { display: flex; flex-direction: column; align-items: center; gap: 2px; border-radius: 5px; }
+.tg-btn:hover:not(:disabled):not(.is-active) { padding: 3px; filter: drop-shadow(0 1px 4px rgba(30, 77, 173, 0.08)); }
+.tg-btn:hover:not(:disabled):not(.is-active) .tg-face { padding: 2px; background: rgba(73, 184, 237, 0.1); }
+.tg-sw { position: relative; flex: none; width: 30px; height: 16px; border-radius: 8px; background: rgba(73, 184, 237, 0.3); transition: background 0.15s; }
+.tg-sw::after { content: ""; position: absolute; left: 2px; top: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; transition: left 0.15s; }
+.tg-btn.is-active { border-color: #49b8ed; }
+.tg-btn.is-active .tg-sw { background: #49b8ed; }
+.tg-btn.is-active .tg-sw::after { left: 16px; }
+.tg-in { flex: none; display: flex; align-items: center; gap: 4px; height: 16px; }
+.tg-ico { width: 16px; height: 16px; flex: none; display: grid; place-items: center; }
+.tg-lbl {
+  font-family: 'Inter Tight', 'Ubuntu', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.5px; line-height: normal;
+  color: #1b1d3a; white-space: nowrap;
+}
+.tg-btn:disabled { padding: 3px; background: #f8f8f9; border-color: #e6ebf0; cursor: default; }
+.tg-btn:disabled .tg-sw { width: 28px; background: #cbd2d8; }
+.tg-btn:disabled .tg-lbl { color: #919ba6; }
+.tg-btn:disabled .tg-ico { opacity: 0.4; filter: grayscale(1); }
+.tg-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* Narrower windows: tighten horizontal gaps only (heights unchanged) */
 @media (max-width: 1599px) {
   .top-right { gap: 12px; }
@@ -663,16 +690,8 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
           <div class="dd-tail"><img class="arrow" src="assets/arrow-down-montage.svg" alt=""><span class="vsep"></span><img class="edit" src="assets/edit.svg" alt="Edit montage"></div>
         </div>
       </div>
-      <div class="switch-item">
-        <img src="assets/as-recorded.svg" alt="" style="width:18px;height:18px">
-        <span class="lbl">As recorded</span>
-        <span class="switch off"><img src="assets/switch-off.svg" alt="Off"></span>
-      </div>
-      <div class="switch-item">
-        <img src="assets/notch.svg" alt="" style="width:10.7px;height:17.07px">
-        <span class="lbl">Notch</span>
-        <span class="switch off"><img src="assets/switch-off.svg" alt="Off"></span>
-      </div>
+      <button type="button" class="tg-btn" role="switch" aria-checked="false" data-node-id="10594:45700"><span class="tg-face"><span class="tg-sw" aria-hidden="true"></span><span class="tg-in"><span class="tg-ico"><img src="assets/as-recorded.svg" alt="" style="width:16px;height:16px"></span><span class="tg-lbl">As recorded</span></span></span></button>
+      <button type="button" class="tg-btn" role="switch" aria-checked="false" data-node-id="10594:45700"><span class="tg-face"><span class="tg-sw" aria-hidden="true"></span><span class="tg-in"><span class="tg-ico"><img src="assets/notch.svg" alt="" style="width:10.03px;height:16px"></span><span class="tg-lbl">Notch</span></span></span></button>
     </div>
     <div class="top-end"><img src="assets/menu.svg" alt="Menu"></div>
   </header>
@@ -805,20 +824,9 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
 
     <div class="bb-right">
       <!-- Hypnogramme toggle hidden: the full hypnogram opens from the sleep periods in the timeline -->
-      <div class="toggle sleep-toggle" id="sleep-toggle" role="switch" aria-checked="false" tabindex="0" style="display:none">
-        <img src="assets/sleep.svg" alt="" style="width:17.5px;height:15.5px;margin:0 0.25px">
-        <span>Hypnogramme</span>
-        <span class="switch off" id="sleep-switch"><img src="assets/switch-off.svg" alt=""></span>
-      </div>
-      <div class="toggle">
-        <img src="assets/algorithm.svg" alt="" style="width:16.47px;height:17.22px">
-        <span>Algorithme</span>
-        <span class="switch on"><img src="assets/switch-on-mat.svg" alt="On"></span>
-      </div>
-      <div class="toggle qeeg">
-        <span class="switch off"><img src="assets/switch-off.svg" alt="Off"></span>
-        <span>qEEG</span>
-      </div>
+      <button type="button" class="tg-btn" role="switch" aria-checked="false" data-node-id="10594:45700" id="sleep-toggle" style="display:none"><span class="tg-face"><span class="tg-sw" aria-hidden="true"></span><span class="tg-in"><span class="tg-ico"><img src="assets/sleep.svg" alt="" style="width:16px;height:14.17px"></span><span class="tg-lbl">Hypnogramme</span></span></span></button>
+      <button type="button" class="tg-btn is-active" role="switch" aria-checked="true" data-node-id="10594:45700"><span class="tg-face"><span class="tg-sw" aria-hidden="true"></span><span class="tg-in"><span class="tg-ico"><img src="assets/algorithm.svg" alt="" style="width:15.3px;height:16px"></span><span class="tg-lbl">Algorithme</span></span></span></button>
+      <button type="button" class="tg-btn" role="switch" aria-checked="false" data-node-id="10594:45700"><span class="tg-face"><span class="tg-sw" aria-hidden="true"></span><span class="tg-in"><span class="tg-lbl">qEEG</span></span></span></button>
       <div class="fs"><img src="assets/fullscreen.svg" alt="Full screen" style="width:23.17px;height:22.9px"></div>
     </div>
   </footer>
@@ -1066,9 +1074,12 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
     return best;
   }
   // 12h window centred on night n (start rounded to the half hour), or on time t
-  function windowAround(t) { return Math.round((t - H12 / 2) / 1800000) * 1800000; }
+  // The window always lies inside the recording (same scale as the timeline), so its date boxes read real recording times:
+  // at the end of the recording it ends at the timeline's end (e.g. 2026/09/30 15:24)
+  function clampW(w0) { return Math.min(Math.max(w0, REC0), REC1 - H12); }
+  function windowAround(t) { return clampW(Math.round((t - H12 / 2) / 1800000) * 1800000); }
   function windowOf(n) { var r = nightRange(n); return windowAround((r[0] + r[1]) / 2); }
-  function pageOk(w0) { return w0 < REC1 && w0 + H12 > REC0; }  // the window still shows part of the recording
+  function pageOk(w0) { return clampW(w0) !== hStart; }  // paging would still move the window
 
   function renderFull() {
     setSleepSwitch(isOpen);  // the Hypnogramme toggle reflects whether a full hypnogram is open
@@ -1086,7 +1097,7 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
       document.getElementById('night-begin').innerHTML = stamp(hStart);
       document.getElementById('night-end').innerHTML = stamp(hStart + H12);
       document.getElementById('hypno-prev').disabled = !pageOk(hStart - H12);
-      document.getElementById('hypno-next').disabled = !pageOk(hStart + H12);
+      document.getElementById('hypno-next').disabled = !pageOk(hStart + H12);  // 12h back / forward, stopping at the recording's edges
       drawVectors();
     }
     updateMarker();
@@ -1104,8 +1115,8 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
     if (n < 0 || (isOpen && n === active)) closeFull();
     else openWindow(windowOf(n));
   }
-  document.getElementById('hypno-prev').addEventListener('click', function () { if (pageOk(hStart - H12)) openWindow(hStart - H12); });
-  document.getElementById('hypno-next').addEventListener('click', function () { if (pageOk(hStart + H12)) openWindow(hStart + H12); });
+  document.getElementById('hypno-prev').addEventListener('click', function () { if (pageOk(hStart - H12)) openWindow(clampW(hStart - H12)); });
+  document.getElementById('hypno-next').addEventListener('click', function () { if (pageOk(hStart + H12)) openWindow(clampW(hStart + H12)); });
 
   ov.addEventListener('click', function (e) {
     var h = e.target.closest('.hypno-condensed');
@@ -1118,12 +1129,19 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
   window.addEventListener('resize', drawVectors);
 
   // Sleep toggle (Bottom Bar): off hides everything hypnogram-related in the timeline
-  var sleepToggle = document.getElementById('sleep-toggle'), sleepSwitch = document.getElementById('sleep-switch');
+  var sleepToggle = document.getElementById('sleep-toggle');
   function setSleepSwitch(on) {
     sleepToggle.setAttribute('aria-checked', on ? 'true' : 'false');
-    sleepSwitch.className = 'switch ' + (on ? 'on' : 'off');
-    sleepSwitch.firstChild.src = on ? 'assets/switch-on-mat.svg' : 'assets/switch-off.svg';
+    sleepToggle.classList.toggle('is-active', on);
   }
+  // Toggle Buttons (10594:45700): a click switches them on (Active) / off (Default); the Hypnogramme one has its own handler
+  document.querySelectorAll('.tg-btn').forEach(function (b) {
+    if (b === sleepToggle) return;
+    b.addEventListener('click', function () {
+      var on = !b.classList.contains('is-active');
+      b.classList.toggle('is-active', on); b.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+  });
   // Night under the centre of the signal window, or -1
   function nightAt(t) {
     for (var n = 0; n < NIGHTS.length; n++) { var r = nightRange(n); if (t >= r[0] && t <= r[1]) return n; }
@@ -1250,9 +1268,7 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
     if (!synthPanel.hidden && !synthPanel.contains(e.target) && !synthBtn.contains(e.target)) setSynth(false);
   });
   sleepToggle.addEventListener('click', toggleSleep);
-  sleepToggle.addEventListener('keydown', function (e) {
-    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleSleep(); }
-  });
+
 
   // Stage tooltip, centred above the hovered stage — on the fully displayed hypnogram and on the condensed ones
   function showTip(seg, list) {
@@ -1392,8 +1408,8 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
     var f = -1;
     if (isOpen) f = (view + SPAN * 500 - hStart) / H12;
     swMarker.hidden = !(f >= 0 && f <= 1);
-    // stairs run from 13px (box 12px + 1px) to 14px (box 13px + 1px) in from the timeline's sides
-    if (!swMarker.hidden) swMarker.style.left = 'calc(13px + (100% - 27px) * ' + f.toFixed(6) + ')';
+    // stairs run 14px (box 13px + 1px) in from each side of the timeline
+    if (!swMarker.hidden) swMarker.style.left = 'calc(14px + (100% - 28px) * ' + f.toFixed(6) + ')';
   }
   // Clicking the fully displayed hypnogram centres the signal window on that moment of the night
   full.addEventListener('click', function (e) {
