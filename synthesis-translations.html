@@ -1,0 +1,309 @@
+<title>Sleep Synthesis Translations</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&display=swap">
+<style>
+/* Layout: page chrome (header + tabs) around two views: the four panels from Figma section 10467:19755, and the FR-source glossary */
+:root {
+  --bg: #eef1f4;
+  --surface: #ffffff;
+  --fg: #1b1d3a;
+  --muted: #5d6573;
+  --line: #d9dee4;
+  --accent: #49b8ed;
+  --accent-soft: #daf1fc;
+  --src: #fff8e6;          /* French source column */
+  --src-line: #f0dca8;
+  --flag: #b4232f;
+  --flag-soft: #fde8ea;
+  --font: "Ubuntu", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14161f; --surface: #1d2030; --fg: #e8eaf2; --muted: #a3a9b8; --line: #343a4d;
+    --accent: #5cc3f2; --accent-soft: #1f3a4a; --src: #2b2618; --src-line: #5a4a22; --flag: #ff8a94; --flag-soft: #3a1d22;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14161f; --surface: #1d2030; --fg: #e8eaf2; --muted: #a3a9b8; --line: #343a4d;
+  --accent: #5cc3f2; --accent-soft: #1f3a4a; --src: #2b2618; --src-line: #5a4a22; --flag: #ff8a94; --flag-soft: #3a1d22;
+  color-scheme: dark;
+}
+body { background: var(--bg); color: var(--fg); font-family: var(--font); }
+.wrap {
+  max-width: 2240px; margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 48px;
+}
+header.page { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 16px 32px; margin-bottom: 20px; }
+.eyebrow { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
+h1 { margin: 0; font-size: 26px; font-weight: 500; text-wrap: balance; display: flex; align-items: center; gap: 10px; }
+.lede { margin: 6px 0 0; color: var(--muted); max-width: 64ch; line-height: 1.5; }
+.tabs { display: flex; gap: 4px; padding: 4px; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+.tabs button {
+  font: 500 14px var(--font); color: var(--muted); background: none; border: 0; border-radius: 5px;
+  padding: 8px 14px; cursor: pointer;
+}
+.tabs button[aria-selected="true"] { background: var(--accent-soft); color: var(--fg); }
+.tabs button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---------- View 1: panels ---------- */
+.board { overflow-x: auto; padding-bottom: 8px; }
+.board-row { display: flex; gap: 24px; align-items: flex-start; width: max-content; padding: 4px; }
+.lang-col { display: flex; flex-direction: column; gap: 10px; }
+.lang-tag { display: flex; align-items: baseline; gap: 8px; font-size: 13px; color: var(--muted); }
+.lang-tag b { font-weight: 700; color: var(--fg); letter-spacing: 0.06em; }
+.lang-tag .src { font-size: 11px; padding: 2px 6px; border-radius: 3px; background: var(--src); border: 1px solid var(--src-line); color: var(--fg); }
+
+/* Panel styles carried over from the WEMU prototype (Figma 10426:37151). The panel is product UI, so it keeps its own light palette. */
+.synth-panel {
+  width: 513px; box-sizing: border-box; display: flex; flex-direction: column;
+  background: #ffffff; border: 1px solid #c9eafa; border-radius: 2px; box-shadow: 0 2px 7px 1px rgba(0, 0, 0, 0.14);
+  color: #1b1d3a; font-weight: 500; font-family: var(--font);
+}
+.synth-head { display: flex; align-items: center; gap: 14px; padding: 15px 10px; border-bottom: 1px solid rgba(201, 234, 250, 0.4); }
+.synth-head h2 { margin: 0; flex: 1; font-size: 18px; font-weight: 500; line-height: 14px; }
+.synth-close { width: 12px; height: 12px; display: grid; place-items: center; }
+.synth-body { display: flex; flex-direction: column; gap: 16px; padding: 16px; }
+.synth-day { display: flex; flex-direction: column; gap: 16px; padding: 10px; border: 1px solid #e6ebf0; border-radius: 4px; }
+.synth-day-title { display: flex; align-items: flex-end; justify-content: space-between; white-space: nowrap; gap: 8px; }
+.synth-day-title b { font-weight: 500; font-size: 16px; letter-spacing: 0.4px; line-height: 11px; }
+.synth-dates { display: flex; align-items: center; gap: 6px; }
+.synth-dates span { font-size: 12px; font-weight: 700; letter-spacing: 0.06px; line-height: 8px; }
+.synth-dates .mute { font-weight: 400; text-transform: uppercase; }
+.synth-section { display: flex; flex-direction: column; gap: 6px; }
+.synth-section h3 { margin: 0; font-size: 12px; font-weight: 500; letter-spacing: 0.3px; line-height: 8px; }
+.synth-card { border: 1px solid #cbd2d8; border-radius: 4px; padding: 7px; }
+.synth-card.night { display: flex; }
+.synth-col { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.synth-sep { flex: 0 0 24px; position: relative; }
+.synth-sep::before { content: ""; position: absolute; left: 11.6px; top: 0; bottom: 0; width: 0.75px; background: #e6ebf0; }
+.synth-rule { height: 0; border-top: 0.75px solid #e6ebf0; margin-bottom: -0.75px; }
+.synth-row { display: flex; align-items: center; gap: 6px; }
+.synth-lbl { font-size: 10px; font-weight: 400; letter-spacing: 0.2px; line-height: 7px; text-transform: uppercase; white-space: nowrap; }
+.synth-val { font-size: 12px; font-weight: 700; line-height: 8px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.synth-row .synth-val:last-child { margin-left: auto; text-align: right; }
+.synth-stage-head { display: flex; justify-content: space-between; align-items: flex-end; height: 8px; }
+.synth-stage-head .first { width: 1px; display: flex; }
+.synth-stages { display: flex; justify-content: space-between; align-items: center; }
+.synth-stages > div { display: flex; flex-direction: column; gap: 10px; }
+.synth-stages .names { width: 29px; }
+.synth-stages .names b { font-size: 10px; font-weight: 700; line-height: 7px; }
+.synth-stages .times { width: 52px; align-items: flex-end; text-align: right; }
+.synth-card.naps { display: flex; flex-direction: column; gap: 6px; }
+.synth-card.naps .synth-lbl { font-weight: 500; }
+.synth-nap { display: flex; align-items: center; justify-content: space-between; }
+.synth-nap .who { display: flex; align-items: center; gap: 6px; }
+.synth-nap .who .synth-val { font-size: 10px; letter-spacing: 0.05px; }
+.synth-nap .span { display: flex; align-items: center; gap: 5px; }
+.synth-nap .span svg { transform: rotate(90deg); }
+.synth-note { display: flex; align-items: flex-start; gap: 4px; padding: 4px; border-radius: 2px; background: rgba(30, 77, 173, 0.1); }
+.synth-note svg { flex: none; }
+.synth-note p { margin: 0; padding: 2px 0; font-size: 10px; font-weight: 500; letter-spacing: 0.1px; line-height: 1.2; }
+
+/* ---------- View 2: glossary ---------- */
+.gloss { display: flex; flex-direction: column; gap: 20px; }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 20px; font-size: 13px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { width: 14px; height: 14px; border-radius: 3px; border: 1px solid var(--src-line); background: var(--src); }
+.sw.flag { background: var(--flag-soft); border-color: var(--flag); }
+.table-box { overflow-x: auto; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; }
+table { border-collapse: collapse; width: 100%; min-width: 1040px; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 11px 14px; border-bottom: 1px solid var(--line); line-height: 1.4; }
+thead th { position: sticky; top: 0; background: var(--surface); font-size: 11px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+thead th.fr { color: var(--fg); }
+tbody tr:last-child td { border-bottom: 0; }
+tr.group td { background: var(--bg); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding-block: 7px; }
+td.fr { background: var(--src); font-weight: 500; border-left: 1px solid var(--src-line); border-right: 1px solid var(--src-line); }
+td.where { color: var(--muted); font-size: 12px; width: 150px; }
+td.flagged { box-shadow: inset 3px 0 0 var(--flag); background: var(--flag-soft); }
+td.notes { color: var(--muted); font-size: 13px; max-width: 34ch; }
+td.notes b { color: var(--flag); font-weight: 500; }
+.issues { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 18px 20px; max-width: 900px; }
+.issues h2 { margin: 0 0 10px; font-size: 16px; font-weight: 500; }
+.issues ol { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 8px; line-height: 1.5; }
+.issues code { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; background: var(--bg); padding: 1px 5px; border-radius: 3px; }
+.foot { margin-top: 18px; font-size: 12px; color: var(--muted); }
+</style>
+
+<div class="wrap">
+  <header class="page">
+    <div>
+      <p class="eyebrow">WEMU · Neuronaute · Figma section “Translations” (10467:19755)</p>
+      <h1>Sleep Synthesis Translations</h1>
+      <p class="lede">The sleep synthesis panel in French, English, German and Italian, plus a glossary that maps each translated label back to its French source.</p>
+    </div>
+    <div class="tabs" role="tablist" aria-label="View">
+      <button type="button" role="tab" id="tab-panels" aria-controls="panels" aria-selected="true">Panels</button>
+      <button type="button" role="tab" id="tab-translations" aria-controls="translations" aria-selected="false">Translations</button>
+    </div>
+  </header>
+
+  <section id="panels" role="tabpanel" aria-labelledby="tab-panels">
+    <div class="board"><div class="board-row" id="board"></div></div>
+  </section>
+
+  <section id="translations" role="tabpanel" aria-labelledby="tab-translations" hidden>
+    <div class="gloss">
+      <div class="legend">
+        <span><i class="sw"></i>French source (reference meaning)</span>
+        <span><i class="sw flag"></i>Translation to review</span>
+      </div>
+      <div class="table-box">
+        <table>
+          <thead><tr>
+            <th>Where</th><th class="fr">Français · source</th><th>English</th><th>Deutsch</th><th>Italiano</th><th>Notes</th>
+          </tr></thead>
+          <tbody id="gloss-body"></tbody>
+        </table>
+      </div>
+      <div class="issues">
+        <h2>Points to check before handoff</h2>
+        <ol>
+          <li>English mixes clock formats: the period headers use 12-hour times, but sleep onset, wake-up and nap times stay on a 24-hour clock (<code>22:10</code>, <code>15:11</code>). Pick one format for the whole panel.</li>
+          <li>Nap dates use <code>YYYY/MM/DD</code> (<code>2026/09/27</code>) while period headers use month names (<code>27 Sept. 2026</code>). Pick one date format for the panel.</li>
+        </ol>
+        <p class="foot">Resolved: “Bedtime” is now “Sleep onset time”, “Total wake time” is now “Total awakening duration”, “13:18pm” is now “1:18pm”, period dates use month names, so day/month order is no longer ambiguous, English uses lowercase “pm” throughout, and nap dates now fall inside their period (naps listed in time order).</p>
+      </div>
+    </div>
+  </section>
+
+  <p class="foot">Source: Figma file “WEMU - Neuronaute files”, frames “Sleep Synthesis - français” (10467:19769), “Sleep Synthesis - english” (10467:19456), “Sleep Synthesis - german” (10467:18922) and “Sleep Synthesis - italian” (10467:19189). Values are the same in every language and are copied from the frames.</p>
+</div>
+
+<script>
+(function () {
+  var ICON_SLEEP = '<svg width="17.5" height="15.5" viewBox="0 0 17.5 15.5" fill="none" aria-hidden="true"><path d="M0.75 5.84H7.21L0.75 14.75H7.21" stroke="#49B8ED" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/><path d="M11.83 0.75H16.75L11.83 7.11H16.75" stroke="#49B8ED" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var ICON_CLOSE = '<svg width="7.29" height="7.29" viewBox="0 0 7.29 7.29" fill="none" aria-hidden="true"><path d="M0.75 0.75L6.54 6.54M6.54 0.75L0.75 6.54" stroke="#171717" stroke-width="1.5" stroke-linecap="round"/></svg>';
+  var ICON_ARROW = '<svg width="7.79" height="11.13" viewBox="0 0 7.79 11.13" fill="none" role="img" aria-label="to"><path d="M3.9 0.75V10.38M7.04 3.9L3.9 0.75L0.75 3.9" stroke="#919BA6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  var ICON_INFO = '<svg width="14" height="14" viewBox="0 0 14 14" fill="none" opacity="0.5" aria-hidden="true"><circle cx="6.9" cy="6.9" r="5.97" stroke="#1E4DAD" stroke-width="1.5"/><path d="M6.9 10.18V6.6M6.9 3.92H6.91" stroke="#1E4DAD" stroke-width="1.5" stroke-linecap="round"/></svg>';
+
+  // Strings per language, as written in each Figma frame
+  var L = {
+    fr: { name: 'Français', code: 'FR', node: '10467:19769', title: 'Synthèse du sommeil', period: 'Période', from: 'du', to: 'au',
+      night: 'Sommeil nocturne', onset: 'Heure d’endormissement', wake: 'Heure de réveil', count: 'Nombre d’éveils', wakeDur: 'Durée totale des éveils',
+      stages: 'Stades', time: 'Temps', total: 'Temps de sommeil total', naps: 'Siestes', nap: 'Sieste', none: 'Aucune',
+      note: 'Cette synthèse repose sur des données générées par un algorithme ; elle ne remplace pas une polysomnographie.' },
+    en: { name: 'English', code: 'EN', node: '10467:19456', title: 'Sleep synthesis', period: 'Period', from: 'from', to: 'to',
+      night: 'Night-time sleep', onset: 'Sleep onset time', wake: 'Wake-up time', count: 'Number of awakenings', wakeDur: 'Total awakening duration',
+      stages: 'Stages', time: 'Duration', total: 'Total sleep time', naps: 'Naps', nap: 'Nap', none: 'None',
+      note: 'This synthesis is based on data generated by an algorithm; it is not a substitute for a polysomnography.' },
+    de: { name: 'Deutsch', code: 'DE', node: '10467:18922', title: 'Schlafzusammenfassung', period: 'Zeitraum', from: 'vom', to: 'bis',
+      night: 'Nachtschlaf', onset: 'Einschlafzeit', wake: 'Aufwachzeit', count: 'Anzahl der Wachphasen', wakeDur: 'Gesamtdauer der Wachphasen',
+      stages: 'Stadien', time: 'Dauer', total: 'Gesamtschlafzeit', naps: 'Nickerchen', nap: 'Nickerchen', none: 'Keine',
+      note: 'Diese Zusammenfassung basiert auf algorithmisch generierten Daten; sie ersetzt keine Polysomnographie.' },
+    it: { name: 'Italiano', code: 'IT', node: '10467:19189', title: 'Sintesi del sonno', period: 'Periodo', from: 'dal', to: 'al',
+      night: 'Sonno notturno', onset: 'Ora di addormentamento', wake: 'Ora di risveglio', count: 'Numero di risvegli', wakeDur: 'Durata totale dei risvegli',
+      stages: 'Fasi', time: 'Tempo', total: 'Tempo totale di sonno', naps: 'Pisolini', nap: 'Pisolino', none: 'Nessuno',
+      note: 'Questa sintesi si basa su dati generati da un algoritmo; non sostituisce una polisonnografia.' }
+  };
+
+  // Period header dates per language, exactly as written in each Figma frame
+  var RANGES = {
+    fr: [['27 Sept. 2026 13:18', '28 Sept. 2026 13:18'], ['28 Sept. 2026 13:18', '29 Sept. 2026 13:18'], ['29 Sept. 2026 13:18', '30 Sept. 2026 13:18']],
+    en: [['27 Sept 2026 1:18pm', '28 Sept 2026 1:18pm'], ['28 Sept 2026 1:18pm', '29 Sept 2026 1:18pm'], ['29 Sept 2026 1:18pm', '30 Sept 2026 1:18pm']],
+    de: [['27. Sept. 2026 13:18', '28. Sept. 2026 13:18'], ['28. Sept. 2026 13:18', '29. Sept. 2026 13:18'], ['29. Sept. 2026 13:18', '30. Sept. 2026 13:18']],
+    it: [['27 Set. 2026 13:18', '28 Set. 2026 13:18'], ['28 Set. 2026 13:18', '29 Set. 2026 13:18'], ['29 Set. 2026 13:18', '30 Set. 2026 13:18']]
+  };
+  var DAYS = [
+    { rows: ['00:02', '07:24', '4', '28min'], total: '7h 8min',
+      stages: [['REM', '20%', '1h 31min'], ['N1', '4%', '18min'], ['N2', '50%', '3h 48min'], ['N3', '20%', '1h 31min']],
+      naps: [['2026/09/27', '15:11', '15:57', '46min']] },
+    { rows: ['22:10', '07:52', '4', '36min'], total: '9h 24min',
+      stages: [['REM', '20%', '2h'], ['N1', '4%', '24min'], ['N2', '50%', '5h'], ['N3', '20%', '2h']], naps: [] },
+    { rows: ['00:11', '07:23', '4', '24min'], total: '7h',
+      stages: [['REM', '19%', '1h 26min'], ['N1', '3%', '15min'], ['N2', '51%', '3h 46min'], ['N3', '21%', '1h 33min']],
+      naps: [['2026/09/29', '15:10', '15:52', '42min'], ['2026/09/30', '11:45', '12:08', '23min']] }
+  ];
+
+  function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;'); }
+  function rule(parts) { return parts.join('<div class="synth-rule"></div>'); }
+  function val(v) { return '<span class="synth-val">' + esc(v) + '</span>'; }
+
+  function panel(k) {
+    var t = L[k];
+    var days = DAYS.map(function (d, i) {
+      var from = RANGES[k][i][0], to = RANGES[k][i][1];
+      var labels = [t.onset, t.wake, t.count, t.wakeDur];
+      var left = '<div class="synth-col">' + rule(d.rows.map(function (v, j) {
+        return '<div class="synth-row"><span class="synth-lbl">' + esc(labels[j]) + '</span>' + val(v) + '</div>';
+      })) + '</div>';
+      var right = '<div class="synth-col"><div class="synth-stage-head"><span class="first"><span class="synth-lbl">' + esc(t.stages) +
+        '</span></span><span class="synth-lbl">%</span><span class="synth-lbl">' + esc(t.time) + '</span></div><div class="synth-rule"></div>' +
+        '<div class="synth-stages"><div class="names">' + d.stages.map(function (s) { return '<b>' + s[0] + '</b>'; }).join('') + '</div>' +
+        '<div class="pcs">' + d.stages.map(function (s) { return val(s[1]); }).join('') + '</div>' +
+        '<div class="times">' + d.stages.map(function (s) { return val(s[2]); }).join('') + '</div></div>' +
+        '<div class="synth-rule"></div><div class="synth-row"><span class="synth-lbl">' + esc(t.total) + '</span>' + val(d.total) + '</div></div>';
+      var naps = d.naps.length ? rule(d.naps.map(function (n, j) {
+        return '<div class="synth-nap"><span class="who"><span class="synth-lbl">' + esc(t.nap) + ' ' + (j + 1) + '</span>' + val(n[0]) + '</span>' +
+          '<span class="span">' + val(n[1]) + ICON_ARROW + val(n[2]) + '</span>' + val(n[3]) + '</div>';
+      })) : '<div class="synth-row"><span class="synth-lbl">' + esc(t.nap) + '</span>' + val(t.none) + '</div>';
+      return '<div class="synth-day"><div class="synth-day-title"><b>' + esc(t.period) + ' ' + (i + 1) + '</b>' +
+        '<div class="synth-dates"><span class="mute">' + esc(t.from) + '</span><span>' + esc(from) + '</span><span class="mute">' + esc(t.to) +
+        '</span><span>' + esc(to) + '</span></div></div>' +
+        '<div class="synth-section"><h3>' + esc(t.night) + '</h3><div class="synth-card night">' + left + '<div class="synth-sep"></div>' + right + '</div></div>' +
+        '<div class="synth-section"><h3>' + esc(t.naps) + '</h3><div class="synth-card naps">' + naps + '</div></div></div>';
+    }).join('');
+    return '<div class="lang-col"><div class="lang-tag"><b>' + t.code + '</b>' + t.name + (k === 'fr' ? ' <span class="src">source</span>' : '') + '</div>' +
+      '<section class="synth-panel" aria-label="' + esc(t.title) + '" data-node-id="' + t.node + '"><header class="synth-head">' + ICON_SLEEP +
+      '<h2>' + esc(t.title) + '</h2><span class="synth-close">' + ICON_CLOSE + '</span></header><div class="synth-body">' + days +
+      '<div class="synth-note">' + ICON_INFO + '<p>' + esc(t.note) + '</p></div></div></section></div>';
+  }
+  // Figma order is IT, DE, EN, FR; here French (the source) comes first
+  document.getElementById('board').innerHTML = ['fr', 'en', 'de', 'it'].map(panel).join('');
+
+  // Glossary: [where, key or literal row, note, flagged languages]
+  var G = [
+    ['Panel'],
+    ['Panel title', 'title', 'German “Zusammenfassung” means “résumé”. Same meaning in context.'],
+    ['Period card'],
+    ['Card title', 'period', 'Followed by the number: Période 1, 2, 3.'],
+    ['Date range: start', 'from', 'Shown in capitals in the UI.'],
+    ['Date range: end', 'to', 'Shown in capitals in the UI.'],
+    ['Date and time', ['27 Sept. 2026 13:18', '27 Sept 2026 1:18pm', '27. Sept. 2026 13:18', '27 Set. 2026 13:18'], 'Month names replace DD/MM/YYYY. <b>EN uses a 12-hour clock only in the period headers</b>; the rest of the panel is on a 24-hour clock.', ['en']],
+    ['Month abbreviation', ['Sept.', 'Sept', 'Sept.', 'Set.'], 'Septembre. DE puts a period after the day number (27.), as German dates do.'],
+    ['Night-time sleep'],
+    ['Section title', 'night', ''],
+    ['Row label', 'onset', 'EN updated from “Bedtime” (heure du coucher) to “Sleep onset time”, which matches the French.'],
+    ['Row label', 'wake', ''],
+    ['Row label', 'count', 'DE “Wachphasen” means “phases d’éveil”. Same meaning in context.'],
+    ['Row label', 'wakeDur', 'EN updated from “Total wake time” to “Total awakening duration”, which counts only the awakenings, as in French.'],
+    ['Stages table: column', 'stages', 'IT “Fasi” means “phases”. “Stadi” is the usual polysomnography term in Italian.'],
+    ['Stages table: column', 'time', 'EN and DE use “Duration”/“Dauer” (durée) rather than “Time”. Clearer than a literal translation.'],
+    ['Stages table: rows', ['REM · N1 · N2 · N3', 'REM · N1 · N2 · N3', 'REM · N1 · N2 · N3', 'REM · N1 · N2 · N3'], 'AASM stage names, the same in every language.'],
+    ['Row label', 'total', ''],
+    ['Naps'],
+    ['Section title', 'naps', ''],
+    ['Row label', ['Sieste 1, Sieste 2', 'Nap 1, Nap 2', 'Nickerchen 1, Nickerchen 2', 'Pisolino 1, Pisolino 2'], 'Numbered per period.'],
+    ['Nap date', ['2026/09/27', '2026/09/27', '2026/09/27', '2026/09/27'], 'YYYY/MM/DD in every language, unlike the month names in the period headers.'],
+    ['Empty state', 'none', 'Agrees with the noun: “Aucune” (une sieste), “Nessuno” (un pisolino), “Keine”.'],
+    ['Disclaimer'],
+    ['Info note', 'note', 'Clinical disclaimer: the result does not replace a polysomnography.']
+  ];
+  var langs = ['fr', 'en', 'de', 'it'];
+  document.getElementById('gloss-body').innerHTML = G.map(function (r) {
+    if (r.length === 1) return '<tr class="group"><td colspan="6">' + esc(r[0]) + '</td></tr>';
+    var flags = r[3] || [];
+    var cells = langs.map(function (k, i) {
+      var text = typeof r[1] === 'string' ? L[k][r[1]] : r[1][i];
+      var cls = (k === 'fr' ? 'fr' : '') + (flags.indexOf(k) >= 0 ? ' flagged' : '');
+      return '<td' + (cls ? ' class="' + cls.trim() + '"' : '') + ' lang="' + k + '">' + esc(text) + '</td>';
+    }).join('');
+    return '<tr><td class="where">' + esc(r[0]) + '</td>' + cells + '<td class="notes">' + r[2] + '</td></tr>';
+  }).join('');
+
+  // Tabs, with #panels / #translations links
+  var tabs = { panels: document.getElementById('tab-panels'), translations: document.getElementById('tab-translations') };
+  function show(id) {
+    Object.keys(tabs).forEach(function (k) {
+      tabs[k].setAttribute('aria-selected', k === id ? 'true' : 'false');
+      document.getElementById(k).hidden = k !== id;
+    });
+  }
+  Object.keys(tabs).forEach(function (k) {
+    tabs[k].addEventListener('click', function () { show(k); try { history.replaceState(null, '', '#' + k); } catch (e) {} });
+  });
+  if (location.hash === '#translations') show('translations');
+})();
+</script>

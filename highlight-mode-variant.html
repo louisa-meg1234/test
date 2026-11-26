@@ -1,0 +1,2369 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"></head><body>
+<title>Highlight mode variant - playback</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;500;700&family=Inter+Tight:wght@500;600;700;800&family=Inter:wght@500;600;800&display=swap">
+<style>
+/* Layout: full-window app. Fixed-height Top Bar / Sleep timeline Group / Bottom Bar; Signals flexes to fill the rest.
+   Horizontal positions inside Signals and the timeline are expressed as % of their container so they track the window width. */
+:root {
+  --white: #ffffff;
+  --dark: #1d1d1d;
+  --black: #000000;
+  --grey-mid: #62676c;
+  --grey-label: #949494;
+  --grey-line: #9e9e9e;
+  --grey-border: #cccccc;
+  --grey-border-2: #a9a9a9;
+  --grey-ground: #ebebeb;
+  --accent: #49b8ed;
+  --accent-15: rgba(73, 184, 237, 0.15);
+  --accent-light: #daf1fc;
+  --annot: #fe3b48;
+  --annot-08: rgba(254, 59, 72, 0.08);
+  --video: rgba(255, 28, 28, 0.75);
+  --stage-wake: rgba(217, 217, 217, 0.2);
+  --stage-n1: #49b8ed;
+  --stage-n2: #1463db;
+  --stage-n3: #0a1e47;
+  --stage-rem: #bc46e0;
+  --sli: #1e4dad;
+  --font: "Ubuntu", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+
+  /* Fixed heights from the Figma frame (1920 × 1019) */
+  --h-top: 50px;
+  --h-band: 26px;        /* white band between Top Bar and Signals (eye toggle, annotation labels) */
+  --h-timeline: 82px;
+  --h-bottom: 54px;     /* 48px in Figma; 54px here so the 46px Highlight toggle button (10594:45700) fits with the bar's 4px padding */
+  --label-col: 68px;     /* left edge of the trace area */
+  color-scheme: light;
+}
+/* The prototype mirrors a light-only clinical UI: colours are set explicitly so it renders the same in any viewer theme. */
+
+html, body { height: 100%; }
+body {
+  margin: 0;
+  background: var(--white);
+  color: var(--dark);
+  font-family: var(--font);
+  overflow: auto;
+  -webkit-font-smoothing: antialiased;
+}
+img { display: block; max-width: none; }
+
+.app {
+  height: 100%;
+  min-width: 1360px;  /* below this the bars cannot hold every control on one line; the page scrolls sideways instead */
+  min-height: 600px;  /* below this the channel rows cannot shrink further without cropping; the page scrolls instead */
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  background: var(--white);
+}
+
+/* ---------------- Top Bar ---------------- */
+.top-bar {
+  flex: 0 0 var(--h-top);
+  height: var(--h-top);
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  padding: 0 19px;
+  background: var(--white);
+  border-bottom: 1px solid var(--grey-border-2);
+  filter: drop-shadow(0 4px 3.5px rgba(0, 0, 0, 0.15));
+  position: relative;
+  z-index: 3;
+  gap: 0;
+}
+.top-left { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
+.menu-btn { display: flex; align-items: center; justify-content: center; height: 38px; }
+.menu-btn img { width: 21.81px; height: 16px; }
+/* Patient infos (10368:36911): name | birth date | age on the first line, recording + AI certainty chip on the second */
+.patient { display: flex; flex-direction: column; gap: 6px; }
+.patient-row { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.patient-name { font-weight: 700; font-size: 14px; letter-spacing: 0.35px; line-height: 14px; color: var(--dark); }
+.patient-row .vsep { align-self: stretch; width: 1.5px; background: var(--accent); }
+.patient-meta { display: flex; align-items: center; gap: 10px; font-size: 14px; letter-spacing: 0.07px; line-height: 14px; color: var(--dark); }
+.patient-meta .sep { width: 1px; height: 14px; background: var(--grey-border); }
+.patient-rec { font-weight: 500; font-size: 14px; letter-spacing: 0.35px; line-height: 14px; color: var(--black); }
+.ai-chip {
+  display: flex; align-items: center; height: 15px; box-sizing: border-box; padding: 4px; border: 0; border-radius: 2px;
+  background: rgba(18, 193, 5, 0.22); color: #0b4516; font: inherit; font-size: 12px; font-weight: 500; letter-spacing: 0.12px; line-height: 9px;
+  cursor: default; white-space: nowrap;
+}
+
+.top-right { flex: 1 1 0; min-width: 0; display: flex; align-items: center; justify-content: flex-end; gap: 25px; }
+.params { display: flex; align-items: stretch; gap: 20px; flex-shrink: 0; }
+.dd-group { display: flex; align-items: stretch; }
+.dd {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  box-sizing: border-box;
+  padding: 7px 10px 7px 0;
+  background: var(--accent-15);
+  border-bottom: 2px solid var(--accent);
+}
+.dd.first { padding-left: 10px; border-top-left-radius: 4px; align-items: center; gap: 15px; }
+.dd.last { border-top-right-radius: 4px; }
+.dd.montage { padding-left: 10px; border-radius: 4px 4px 0 0; gap: 15px; }
+.dd-text { display: flex; flex-direction: column; gap: 8px; }
+.dd-label { font-size: 10px; font-weight: 500; letter-spacing: 0.1px; line-height: 7px; color: var(--grey-mid); white-space: nowrap; }
+.dd-value { font-size: 14px; font-weight: 500; letter-spacing: 0.35px; line-height: 10px; color: var(--dark); white-space: nowrap; }
+.dd-tail { display: flex; align-items: flex-end; align-self: stretch; }
+.dd-tail .arrow { align-self: center; width: 14px; height: 7px; margin: 0 -1px; }
+.dd-tail .vsep { width: 1px; height: 25px; background: var(--accent); margin-left: 15px; }
+.dd.montage .dd-tail .vsep { margin: 0 15px; }
+.dd-tail .edit { width: 20px; height: 20px; align-self: center; }
+
+.switch-item { display: flex; align-items: center; gap: 10px; padding: 15px 10px; flex-shrink: 0; }
+.switch-item .lbl { font-size: 14px; font-weight: 500; letter-spacing: 0.35px; line-height: 18px; color: var(--black); white-space: nowrap; }
+.switch { position: relative; width: 43px; height: 14px; flex-shrink: 0; }
+.switch img { position: absolute; width: 48px; height: 30px; top: -7px; }
+.switch.off img { left: -5px; }
+.switch.on img { left: 0; }
+.top-end { display: flex; align-items: center; justify-content: center; height: 38px; padding-left: 10px; flex-shrink: 0; }
+.top-end img { width: 21.81px; height: 16px; }
+
+/* ---------------- Middle: band + Signals ---------------- */
+.middle {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+.band { flex: 0 0 var(--h-band); position: relative; }
+
+.eye-toggle { position: absolute; left: 21px; top: 1px; width: 33px; height: 24.14px; z-index: 4; }
+.eye-toggle .eye { position: absolute; left: -0.75px; top: 10.28px; width: 25.09px; height: 14.6px; }
+.eye-toggle .badge {
+  position: absolute; left: 15px; top: 0;
+  width: 18px; height: 17px; box-sizing: border-box; padding: 0;
+  border-radius: 100px; background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 500; letter-spacing: 0.12px; color: var(--white); line-height: 1;
+  text-box: trim-both cap alphabetic;
+}
+
+.signals {
+  flex: 1 1 auto;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.grid {
+  position: absolute;
+  left: 67px; right: 0; top: 0; bottom: 0;
+  box-sizing: border-box; border: 1px solid var(--grey-border-2); background: var(--white); overflow: hidden;
+}
+/* Vertical lines, redrawn with the seconds markers: dark at each marker, 4 light ones in between */
+.grid i { position: absolute; top: 0; bottom: 0; width: 1px; margin-left: -1px; background: #e5e5e5; }
+.grid i.major { background: var(--grey-border-2); }
+/* Hover cursor: a red line following the pointer across the grid (above the traces, under the seconds markers) */
+.cursor-line { position: absolute; top: 1px; width: 1px; margin-left: -1px; background: #e41f13; pointer-events: none; z-index: 1; }
+.cursor-line[hidden] { display: none; }
+.deriv-list {
+  position: absolute; left: 0; top: 0; bottom: 0; width: 68px;
+  box-sizing: border-box; border: 1px solid var(--grey-border-2); background: var(--white);
+}
+.channels {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 6.57px 0 0 4px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+/* Groups take their content height, then share the spare height; on short windows the rows, separators and ECG row compress
+   (rows down to 16px, labels shrinking with them) so the Bottom Bar stays in view; Top Bar, timeline and Bottom Bar keep their heights */
+.deriv-group { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; justify-content: space-between; }
+.deriv-group.g3 { max-height: 55px; }
+.ch { display: flex; align-items: center; gap: 9px; width: 100%; flex: 0 1 auto; min-height: 16px; }
+.ch.g10 { gap: 10px; }
+.ch-label {
+  flex: 0 0 auto;
+  box-sizing: border-box;
+  height: 100%; max-height: 20px;
+  padding: 0 4px;
+  display: flex; align-items: center; justify-content: flex-end;
+  background: var(--white);
+  border-radius: 2px;
+  font-size: 14px; font-weight: 500; letter-spacing: 0.35px; line-height: 18px;
+  color: var(--black);
+  white-space: nowrap;
+  position: relative;
+  z-index: 1;
+}
+.ch-label-col { width: 55px; flex: 0 0 55px; align-self: stretch; display: flex; align-items: center; justify-content: flex-end; }
+.trace { flex: 1 1 0; min-width: 0; height: 100%; position: relative; clip-path: inset(-100px 0 -100px 0); }
+/* Playback: each trace is a strip of 3 tiles (A, A mirrored, A) so it can scroll seamlessly */
+.strip { position: absolute; left: 0; top: 0; height: 100%; display: flex; }
+.strip img { position: static; flex: none; height: 100%; }
+.strip img.rev { transform: scaleX(-1); }
+.dash { flex: none; width: 55px; box-sizing: border-box; padding: 0 4px; display: flex; justify-content: flex-end; align-items: center; background: var(--white); border-radius: 2px; font-size: 14px; font-weight: 500; line-height: 18px; color: var(--black); overflow: visible; position: relative; z-index: 1; }
+.dash.h15 { height: 15px; flex: 0 1 15px; min-height: 6px; }
+.dash.h5 { height: 5px; }
+.ecg-row { display: flex; align-items: center; gap: 10px; width: 100%; flex: 0 1 50px; height: 50px; min-height: 30px; }
+.ecg-row .ch-label-col { width: 55px; }
+.ecg-trace { flex: 1 1 0; min-width: 0; height: 100%; position: relative; clip-path: inset(-100px 0 -100px 0); }
+
+.seconds {
+  position: relative; flex: 0 0 20px; margin: 0 0 0 calc(var(--label-col) - 1px); padding-left: 1px;
+  background: var(--white); border: 1px solid var(--grey-border-2); box-sizing: border-box; z-index: 1;
+}
+.seconds span {
+  position: absolute; top: 0; bottom: 0; width: 55.39px; display: flex; align-items: center;
+  font-size: 10px; font-weight: 500; letter-spacing: 0.18px; line-height: 1; color: var(--black);
+  text-box: trim-both cap alphabetic;  /* centre the digits themselves, as Figma's cap-height trim does */
+  white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+
+/* Overlays positioned against the trace area */
+.overlay { position: absolute; left: var(--label-col); right: 0; top: 0; bottom: 0; pointer-events: none; }
+
+.video-marker {
+  position: absolute; top: calc(var(--h-band) + 1px); bottom: -2px;
+  left: 56.18%; width: 27px; margin-left: -13.5px;
+  display: flex; flex-direction: column; align-items: center; z-index: 2;
+}
+.video-marker .line { flex: 1 1 auto; min-height: 0; width: 2px; height: auto; }  /* 2px stroke (Video toggle states 10653:47579) */
+.video-marker .cam {
+  flex: 0 0 27px; width: 27px; box-sizing: border-box; padding: 2px; border-radius: 2px;
+  background: var(--video); display: flex; align-items: center; justify-content: center;
+}
+.video-marker .cam img { width: 18.5px; height: 12.89px; }
+
+/* ---------------- Classic annotation (Figma "global interactions") ---------------- */
+.signals { user-select: none; -webkit-user-select: none; }
+/* Annotations layer: clipped to the trace area; labels sit in the white band, areas fill the signal view */
+.annots { position: absolute; inset: 0; overflow: hidden; }
+/* title tab: same corners, size and text as a video highlight's tab (.hl-label), in the annotation red */
+.annot-label {
+  position: absolute; top: calc(var(--h-band) - 17px); height: 17px; display: flex; z-index: 2;
+  pointer-events: auto; cursor: pointer;  /* a click opens the annotation's menu */
+}
+.annot-label span {
+  box-sizing: border-box; display: flex; align-items: center; justify-content: center; min-height: 17px; padding: 2px 4px;
+  background: #fe3b48; border-radius: 4px 4px 0 0;
+  font-size: 12px; font-weight: 500; letter-spacing: 0.18px; line-height: normal; color: var(--white); white-space: nowrap;
+}
+.annot-area { position: absolute; top: calc(var(--h-band) - 0.07px); bottom: 20px; background: rgba(254, 59, 72, 0.08); }
+/* Selection drawn by double-click: #49B8ED 15% fill, 1px #49B8ED stroke, full height of the signal view */
+.annot-sel {
+  position: absolute; top: calc(var(--h-band) - 0.07px); bottom: 20px; box-sizing: border-box;
+  background: rgba(73, 184, 237, 0.15); border: 1px solid #49b8ed; z-index: 1;
+}
+.annot-sel[hidden], .amenu [hidden], .amenu[hidden] { display: none; }
+/* Annotation menu (10646:35673): Level 1 (+ Mesure / Delete), Level 2 (10646:35535), "Commentaire optionnel" (10646:35548) */
+.amenu { position: fixed; z-index: 50; width: 177px; font-family: 'Inter Tight', 'Ubuntu', sans-serif; }
+.am-card {
+  position: relative; box-sizing: border-box; display: flex; flex-direction: column; gap: 8px; padding: 8px 0;
+  background: var(--white); border: 1px solid #e6ebf0; border-radius: 4px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+.am-list { display: flex; flex-direction: column; gap: 8px; padding: 10px; }
+.am-item {
+  display: flex; align-items: center; gap: 16px; height: 28px; padding-left: 10px; border-radius: 4px; cursor: pointer;
+  font-size: 14px; font-weight: 500; letter-spacing: 0.7px; color: #1b1d3a; white-space: nowrap;
+}
+.am-item span { flex: 1 1 auto; }
+.am-item img { width: 20px; height: 20px; transform: rotate(-90deg); flex: none; }
+.am-item:hover, .am-item.is-open { background: #f8f8f9; }
+.am-sep { display: block; width: 100%; height: 1px; }
+.am-free { padding-left: 8px; }
+.am-input {
+  box-sizing: border-box; height: 28px; padding: 0 0 0 10px; border: 0; outline: 0; background: transparent; border-radius: 4px;
+  font: 500 14px 'Inter Tight', 'Ubuntu', sans-serif; letter-spacing: 0.7px; color: #1b1d3a;
+}
+.am-input::placeholder { color: #919ba6; opacity: 1; }
+.am-free .am-input { width: calc(100% - 8px); }
+.am-l1 { width: 177px; }
+.am-l2 { position: absolute; top: 0; width: 273px; }
+.am-comment { position: absolute; width: 195px; padding: 8px 18px 8px 8px; gap: 0; }
+.am-comment .am-input { width: 100%; }
+.am-foot {
+  margin-top: 6px; flex-direction: row; align-items: center; gap: 16px; padding: 8px 18px 8px 0; cursor: pointer;
+}
+.am-foot .am-btn { flex: 0 0 auto; display: flex; align-items: center; gap: 16px; height: 28px; padding-left: 10px; border-radius: 4px;
+  font-size: 14px; font-weight: 500; letter-spacing: 0.7px; color: #1b1d3a; white-space: nowrap; }
+.am-foot .am-btn img { width: 16px; height: 16px; flex: none; }
+.am-foot .am-btn span { width: auto; }
+.am-foot .am-chan { margin-left: auto; }
+.am-foot .am-chan { font-size: 14px; font-weight: 500; letter-spacing: 0.7px; color: #919ba6; white-space: nowrap; }
+.am-foot.is-delete { border-color: rgba(228, 31, 19, 0.2); }
+.am-foot.is-delete .am-btn { color: #72200e; }
+/* Delete (edit menu): the whole row takes the grey hover, like the menu items */
+.am-foot.is-delete { padding: 8px 10px; }
+.am-foot.is-delete .am-btn { flex: 1 1 auto; }
+.am-foot:hover .am-btn { background: #f8f8f9; }
+/* Creation menu: the "Measure section" button sits above the Level 1 list; its whole row (icon, label, channel) takes the
+   grey hover of the menu items */
+.am-foot.is-measure { margin: 0 0 6px; padding: 8px 10px; }
+.am-foot.is-measure .am-btn { flex: 1 1 auto; min-width: 0; gap: 8px; padding-right: 6px; }  /* fits inside the card */
+.am-foot.is-measure .am-btn img { margin-right: 8px; }
+.am-foot.is-measure .am-chan { margin-left: auto; }
+/* Bottom timeline: one stroke (10646:31973) at each annotation's start */
+.annot-stroke { position: absolute; top: 2.96px; width: 2px; height: 30.379px; margin-left: -1px; z-index: 2; pointer-events: none; }
+/* Hovering a stroke: tooltip (10663:2904) in the annotation type's colour, showing the annotation's label */
+.annot-tip {
+  position: absolute; bottom: calc(100% - 1.17px + 2px); z-index: 7; pointer-events: none; transform: translateX(-50%);
+  display: flex; align-items: center; justify-content: center; padding: 4px 4px; border-radius: 4px;
+  background: var(--annot-color, #fe3b48); color: var(--white);
+  font-size: 12px; font-weight: 500; letter-spacing: 0.18px; line-height: normal; white-space: nowrap;
+}
+.annot-tip span { text-box: trim-both cap alphabetic; }
+.annot-tip[hidden] { display: none; }
+/* Video highlight titles open below the timeline box instead; only while one shows is the timeline lifted over the Bottom
+   Bar (so it stays whole) — otherwise the Bottom Bar's window-length menu, which opens upwards, must stay on top */
+.annot-tip.is-below { bottom: auto; top: calc(1.17px + 33.95px + 2px); }
+.sleep-timeline.tip-below { z-index: 4; }
+
+/* ---------------- Video Highlight mode ---------------- */
+/* Highlight mode button: toggle + highlight icon + "Highlight", states from Toggle Button (10594:45700), Figma sizes
+   counting the 1px border inside the padding:
+   Default 10594:45696 (6px, light-blue border) · Hover 10594:45697 (4px + 2px light-blue inner panel) ·
+   Active 10594:45699 (6px, blue border, toggle on) · Unavailable 10594:45698 (4px, grey card, 28px grey toggle) */
+.hl-btn {
+  box-sizing: border-box; padding: 5px; display: flex; align-items: center; justify-content: center;
+  background: var(--white); border: 1px solid #c9eafa; border-radius: 8px; filter: drop-shadow(0 2px 4px rgba(110, 139, 200, 0.1));
+  cursor: pointer; font: inherit;
+}
+.hl-face { display: flex; flex-direction: column; align-items: center; gap: 2px; border-radius: 5px; }
+.hl-btn:hover:not(:disabled):not(.is-active) { padding: 3px; filter: drop-shadow(0 1px 4px rgba(30, 77, 173, 0.08)); }
+.hl-btn:hover:not(:disabled):not(.is-active) .hl-face { padding: 2px; background: rgba(73, 184, 237, 0.1); }
+.hl-tog { position: relative; flex: none; width: 30px; height: 16px; border-radius: 8px; background: rgba(73, 184, 237, 0.3); transition: background 0.15s; }
+.hl-tog::after { content: ""; position: absolute; left: 2px; top: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; transition: left 0.15s; }
+.hl-btn.is-active { border-color: #49b8ed; }
+.hl-btn.is-active .hl-tog { background: #49b8ed; }
+.hl-btn.is-active .hl-tog::after { left: 16px; }
+.hl-in { flex: none; display: flex; align-items: center; gap: 4px; }
+.hl-btn img { width: 16px; height: 16px; flex: none; }
+.hl-lbl {
+  font-family: 'Inter Tight', 'Ubuntu', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.5px; line-height: normal;
+  color: #1b1d3a; white-space: nowrap; text-box: trim-both cap alphabetic;
+}
+.hl-btn .ico-off { display: none; }
+.hl-btn:disabled { padding: 3px; background: #f8f8f9; border-color: #e6ebf0; cursor: default; }
+.hl-btn:disabled .hl-tog { width: 28px; background: #cbd2d8; }
+.hl-btn:disabled .hl-lbl { color: #919ba6; }
+.hl-btn:disabled .ico-default { display: none; }
+.hl-btn:disabled .ico-off { display: block; }
+.hl-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Cursor tooltip: Start highlight (10660:2876) before a highlight is started, End highlight (10660:2898) after */
+.hl-cursor {
+  position: fixed; z-index: 40; pointer-events: none; display: flex; align-items: center; gap: 5px; padding: 2px 5px 2px 3px;
+  border-radius: 4px; background: #1b1d3a; color: var(--white); font-family: 'Inter Tight', 'Ubuntu', sans-serif; font-size: 12px; font-weight: 500;
+  white-space: nowrap; line-height: normal;
+}
+.hl-cursor[hidden] { display: none; }
+.hl-cursor kbd {
+  box-sizing: border-box; min-width: 13px; display: flex; align-items: center; justify-content: center; padding: 3px 2px; border-radius: 2px;
+  background: rgba(255, 255, 255, 0.25); font: inherit; font-weight: 700; letter-spacing: 0.3px;
+}
+.hl-cursor kbd, .hl-cursor span { text-box: trim-both cap alphabetic; }
+.hl-cursor span { letter-spacing: 0.48px; }
+.hl-cursor.is-end span { letter-spacing: 0.6px; }
+/* Cut in progress on the Signal view: #1B1D3A 10% */
+.hl-live { position: absolute; top: calc(var(--h-band) - 0.07px); bottom: 20px; background: rgba(27, 29, 58, 0.1); pointer-events: none; }
+/* Finished highlight on the Signal view (Grouped video highlight, Default 10663:2976 / Hovered 10663:2977) */
+.hl-area { position: absolute; top: calc(var(--h-band) - 0.07px); bottom: 20px; background: rgba(27, 29, 58, 0.02); pointer-events: none; }
+.hl-area.is-hover { background: rgba(27, 29, 58, 0.1); }
+.hl-label {
+  position: absolute; top: calc(var(--h-band) - 17px); min-height: 17px; box-sizing: border-box; display: flex; align-items: center; justify-content: center;
+  padding: 2px 4px; border-radius: 4px 4px 0 0; background: #1b1d3a; color: var(--white); z-index: 2; pointer-events: none;
+  font-size: 12px; font-weight: 500; letter-spacing: 0.18px; line-height: normal; white-space: nowrap;
+}
+.hl-label span { text-box: trim-both cap alphabetic; }
+/* Timeline: Video active cut (10659:64692), 9px high, at the bottom of the 3-day box (its bottom caps just inside the
+   box's bottom border): #1B1D3A 20% fill between two 2px I-beam ends (5px caps), fading out over 5px beyond each end */
+.hl-cut { position: absolute; top: 24.12px; height: 9px; z-index: 3; pointer-events: none; background: rgba(27, 29, 58, 0.2); }
+.hl-cut::before, .hl-cut::after { content: ""; position: absolute; top: 0; bottom: 0; width: 5px; }
+.hl-cut::before { right: 100%; background: linear-gradient(to left, rgba(27, 29, 58, 0.2) 12%, rgba(27, 29, 58, 0) 74.5%); }
+.hl-cut::after { left: 100%; background: linear-gradient(to right, rgba(27, 29, 58, 0.2) 12%, rgba(27, 29, 58, 0) 74.5%); }
+.hl-cut i { position: absolute; top: 0; bottom: 0; width: 2px; background: #1b1d3a; }
+.hl-cut i.a { left: -1px; }
+.hl-cut i.b { right: -1px; }
+.hl-cut i::before, .hl-cut i::after { content: ""; position: absolute; left: -1.5px; width: 5px; height: 2px; background: #1b1d3a; }
+.hl-cut i::before { top: -1px; }
+.hl-cut i::after { bottom: -1px; }
+.signals.hl-mode { cursor: pointer; }
+
+/* Video highlight menu, built like the annotation menu (same .am-* cards and lists):
+   Creation 10671:18717 = title card (times + title field) + Level 1 list; Edit 10671:18621 = the same + a Delete card.
+   Choosing a type names the highlight (Level 2 opens beside arrowed types, as in the annotation menu). */
+.hmenu { position: fixed; z-index: 50; width: 210px; font-family: 'Inter Tight', 'Ubuntu', sans-serif; }
+.hmenu[hidden] { display: none; }
+.hmenu .am-l1 { width: 210px; display: flex; flex-direction: column; gap: 6px; }
+.hmenu .am-foot { margin-top: 0; padding: 8px 10px; }
+/* Delete highlights on hover like the type items: a full-width rounded row inset 10px from the card */
+.hmenu .am-foot .am-btn { flex: 1 1 auto; }
+.hm-title {
+  box-sizing: border-box; display: flex; flex-direction: column; gap: 16px; padding: 16px;
+  background: var(--white); border: 1px solid #e6ebf0; border-radius: 4px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+  font-size: 14px; font-weight: 500; letter-spacing: 0.7px;
+}
+.ht-time { display: flex; align-items: center; gap: 4px; color: #919ba6; white-space: nowrap; font-variant-numeric: tabular-nums; height: 11px; }
+.ht-time > img { width: 16px; height: 16px; }
+.ht-time > span { display: flex; align-items: center; gap: 8px; }
+.ht-time > span img { width: 10px; height: 6px; }
+.ht-title {
+  width: 100%; height: 19px; margin: -4px 0; box-sizing: content-box; padding: 0; border: 0; outline: 0; background: none;  /* 11px in the layout, room for descenders */
+  font: inherit; letter-spacing: inherit; line-height: 19px; color: #1b1d3a;
+}
+.ht-title::placeholder { color: #1b1d3a; opacity: 1; }
+.ht-title:focus::placeholder { opacity: 0.45; }
+.hl-label { pointer-events: auto; cursor: pointer; }
+
+/* Video highlights confirmation popup (10654:53053), opened when the user heads for the top of the window or closes it */
+.pp-back { position: fixed; inset: 0; z-index: 60; background: rgba(27, 29, 58, 0.25); display: flex; align-items: center; justify-content: center; }
+.pp-back[hidden] { display: none; }
+.pp {
+  width: 675px; height: 520px; max-width: calc(100vw - 32px); max-height: calc(100vh - 32px); box-sizing: border-box; display: flex; flex-direction: column;
+  background: var(--white); border: 2px solid #f2f2f2; border-radius: 10px;  /* not clipped, so the dropdowns can open past its edge */
+  font-family: 'Inter', 'Ubuntu', sans-serif; color: #1b1d3a; box-shadow: 0 8px 30px rgba(27, 29, 58, 0.18);
+}
+.pp-head { flex: none; height: 45px; display: flex; align-items: center; gap: 10px; padding: 0 15px; background: #f2f2f2; border-radius: 8px 8px 0 0; }
+.pp-head h2 { flex: 1; margin: 0; font: 600 16px 'Inter Tight', 'Ubuntu', sans-serif; letter-spacing: 0.32px; color: #1b1d3a; }
+.pp-x { width: 25px; height: 25px; padding: 0; border: 0; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.pp-x img { width: 14.06px; height: 14.06px; }
+/* Fixed height (Pruning section popup - fixed, 10668:9343): the table takes the height of its rows; with few rows the
+   space below it stays white, with many it scrolls inside the body */
+.pp-body { flex: 1 1 auto; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 16px; padding: 20px; }
+.pp-caution {
+  align-self: flex-start; display: flex; align-items: center; gap: 6px; padding: 3px 6px 3px 3px; border-radius: 2px;
+  background: linear-gradient(rgba(228, 31, 19, 0.08), rgba(228, 31, 19, 0.08)), #fff;
+  font: 500 12px 'Inter Tight', 'Ubuntu', sans-serif; letter-spacing: 0.64px; color: #72200e;
+}
+.pp-caution img { width: 18px; height: 18px; }
+.pp-caution b { font-weight: 800; }
+.pp-container { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 8px; }
+.pp-days { height: 35px; box-sizing: border-box; display: flex; align-items: center; justify-content: space-between; padding: 4px; background: #f8f8f9; border: 1px solid #e6ebf0; border-radius: 8px; }
+.pp-day {
+  height: 100%; box-sizing: border-box; display: flex; align-items: center; gap: 4px; padding: 0 6px; border: 1px solid transparent; border-radius: 4px;
+  background: none; cursor: pointer; font: 600 12px 'Inter', 'Ubuntu', sans-serif; white-space: nowrap;
+}
+.pp-day .n { color: #919ba6; opacity: 0.5; letter-spacing: 0.3px; }
+.pp-day .d { color: #62676c; letter-spacing: 0.12px; font-variant-numeric: tabular-nums; }
+.pp-day.is-active { background: #fff; border-color: #cbd2d8; filter: drop-shadow(0 1px 4px rgba(30, 77, 173, 0.08)); cursor: default; }
+.pp-day.is-active .n { color: #cbd2d8; opacity: 1; }
+.pp-day.is-active .d { color: #1b1d3a; }
+.pp-table { flex: 0 1 auto; min-height: 0; background: #fff; border: 1px solid #e0e3eb; border-radius: 4px; display: flex; flex-direction: column; gap: 2px; padding-bottom: 2px; }
+.pp-tr { height: 28px; flex: none; display: flex; align-items: center; padding: 0 12px; font-size: 12px; font-weight: 600; letter-spacing: 0.3px; color: #1b1d3a; }
+.pp-tr.pp-th { border-bottom: 1px solid #e8ebf0; }
+.pp-th > span { opacity: 0.4; }
+/* only the list of rows scrolls: everything above it keeps its height */
+.pp-caution, .pp-days, .pp-th { flex: none; }
+.pp-rows { flex: 1 1 auto; min-height: 0; overflow: auto; display: flex; flex-direction: column; gap: 2px; }
+.pp-c1 { width: 73px; flex: none; } .pp-c2 { width: 149px; flex: none; display: flex; align-items: center; gap: 4px; font-variant-numeric: tabular-nums; }
+.pp-c3 { width: 188px; flex: none; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding-right: 8px; box-sizing: border-box; }
+.pp-c4 { width: 47px; flex: none; display: flex; align-items: center; gap: 12px; }
+.pp-c2 img { width: 10px; height: 6px; }
+.pp-bar { display: block; width: 5px; height: 16px; border-radius: 2px; background: #1b1d3a; }
+.pp-bar.is-annot { background: #fe3b48; }
+.pp-act { width: 16px; height: 16px; padding: 0; border: 0; background: none; cursor: pointer; }
+.pp-act img { width: 16px; height: 16px; }
+.pp-act:focus-visible, .pp-day:focus-visible, .pp-x:focus-visible, .pp-btn:focus-visible, .pp-dd:focus-visible, .pp-tog:focus-visible, .pp-check:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pp-c3 input { width: 100%; box-sizing: border-box; height: 22px; padding: 0 4px; border: 1px solid #49b8ed; border-radius: 2px; outline: 0; font: 600 12px 'Inter', 'Ubuntu', sans-serif; letter-spacing: 0.3px; color: #1b1d3a; }
+.pp-empty { height: 28px; display: flex; align-items: center; padding: 0 12px; font-size: 12px; font-weight: 500; color: #919ba6; }
+.pp-sel { flex: none; border-top: 2px solid #f2f2f2; padding: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 12px; font-weight: 500; letter-spacing: 0.3px; }
+.pp-line { display: flex; align-items: center; gap: 6px; height: 28px; white-space: nowrap; }
+.pp-line.margin { padding-left: 26px; }
+.pp-line b { font-weight: 800; }
+.pp-line.is-off { opacity: 0.4; }
+.pp-line.is-off * { pointer-events: none; }
+.pp-check { width: 20px; height: 20px; padding: 0; border: 0; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.pp-check svg { width: 18px; height: 18px; }
+.pp-ddw { position: relative; }
+.pp-dd {
+  height: 28px; box-sizing: border-box; display: flex; align-items: center; gap: 8px; padding: 4px 8px; background: #fff; border: 1px solid #e6ebf0; border-radius: 4px;
+  cursor: pointer; font: 500 12px 'Inter', 'Ubuntu', sans-serif; letter-spacing: 0.12px; color: #1b1d3a; white-space: nowrap;
+}
+.pp-dd.dur { width: 115px; justify-content: space-between; }
+.pp-dd img { width: 20px; height: 20px; transform: rotate(-90deg); }
+.pp-menu {
+  position: absolute; left: 0; top: calc(100% + 4px); z-index: 2; min-width: 100%; box-sizing: border-box; margin: 0; padding: 4px 0; list-style: none;
+  background: #fff; border: 1px solid #e6ebf0; border-radius: 4px; box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+.pp-menu[hidden] { display: none; }
+.pp-menu.is-up { top: auto; bottom: calc(100% + 4px); }  /* opens upwards when there is no room below in the window */
+.pp-menu li { height: 28px; display: flex; align-items: center; padding: 0 8px; cursor: pointer; font-size: 12px; font-weight: 500; letter-spacing: 0.12px; white-space: nowrap; }
+.pp-menu li:hover { background: rgba(73, 184, 237, 0.08); }
+.pp-menu li[aria-selected="true"] { color: #49b8ed; }
+.pp-tog {
+  height: 28px; box-sizing: border-box; display: flex; align-items: center; gap: 4px; padding: 2px 6px; background: #fff; border: 1px solid #cbd2d8; border-radius: 4px;
+  cursor: pointer; font: 600 12px 'Inter', 'Ubuntu', sans-serif; letter-spacing: 0.3px; color: #1b1d3a;
+}
+.pp-types { display: flex; align-items: center; gap: 6px; }
+.pp-tog img { width: 16px; height: 16px; display: none; }
+.pp-tog[aria-pressed="true"] { background: rgba(73, 184, 237, 0.05); border-color: #c9eafa; }
+.pp-tog[aria-pressed="true"] img { display: block; }
+.pp-foot { flex: none; height: 70px; box-sizing: border-box; border-top: 2px solid #f2f2f2; padding: 20px; display: flex; align-items: center; justify-content: space-between; }
+.pp-btn { height: 30px; box-sizing: border-box; display: flex; align-items: center; gap: 5px; padding: 6px 10px; border-radius: 8px; cursor: pointer; font: 500 12px 'Ubuntu', sans-serif; }
+.pp-btn.back { background: #fff; border: 1px solid rgba(30, 77, 173, 0.2); color: #1e4dad; filter: drop-shadow(0 1px 4px rgba(30, 77, 173, 0.08)); }
+.pp-btn.ok { background: #1e4dad; border: 1px solid #1e4dad; color: #fefefe; }
+.pp-btn.ok img { width: 16px; height: 16px; }
+
+/* Timeline in Highlight mode ("Timeline + video highlights", 10663:2956): a 13px "Video timeline" strip (10671:18557) on
+   top, split by day like the 3-day box, holds the video highlights and is where they are drawn; the 3-day box below shrinks
+   to 24px (top 12px) and keeps navigating. Outside Highlight mode the timeline is unchanged. */
+.hl-strip {
+  position: absolute; top: 0; height: 13px; left: 4.037%; width: 93.017%; box-sizing: border-box; display: none;
+  background: var(--white); border: 1px solid var(--grey-line); z-index: 2;
+}
+.hl-strip i { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--grey-line); }
+.sleep-timeline.hl-mode .hl-strip { display: block; }
+.sleep-timeline.hl-mode .ground, .sleep-timeline.hl-mode .days-box { top: 12px; height: 24px; }
+.sleep-timeline.hl-mode .day { top: 12px !important; height: 36px !important; }
+.sleep-timeline.hl-mode .annot-stroke { top: 14px; height: 20px; }
+.sleep-timeline.hl-mode .active-window { top: 11px; height: 26px; }
+.sleep-timeline.hl-mode .hl-cut { top: 2px; }
+/* the highlights' titles then open above the strip */
+.sleep-timeline.hl-mode .annot-tip.is-below { top: auto; bottom: calc(100% + 2px); }
+
+/* ---------------- Video (Figma "Video behaviour") ---------------- */
+/* Video marker (10646:23219): drag to move the video timeframe, click to show / hide the preview */
+.video-marker { pointer-events: auto; cursor: ew-resize; touch-action: none; }
+.video-marker .cam { cursor: pointer; }
+/* States: unselected (10653:47565) = video available, preview closed · active (10653:47559) = preview open ·
+   disabled (10653:47574) = no video available, the marker does not respond */
+.video-marker.is-unselected .cam { background: var(--white); border: 1px solid var(--video); }
+.video-marker.is-disabled .cam { background: #f8f8f9; border: 1px solid #919ba6; }
+.video-marker.is-disabled, .video-marker.is-disabled .cam { cursor: default; }
+/* Video preview (Video interface, 10652:47509): 250×156, floats over the signal view, dragged from anywhere but its icons */
+.vprev {
+  position: fixed; z-index: 40; width: 250px; height: 156px; overflow: hidden; background: #000;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25); cursor: move; touch-action: none; user-select: none; -webkit-user-select: none;
+}
+.vprev[hidden] { display: none; }
+.vprev video { display: block; width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+.vprev::after {  /* top and bottom shading from the design, keeps the white icons readable */
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(0deg, rgba(0, 0, 0, 0.16) 0%, rgba(255, 255, 255, 0) 25%, rgba(212, 212, 212, 0.01) 75%, rgba(0, 0, 0, 0.16) 100%);
+}
+.vp-btn { position: absolute; z-index: 1; padding: 0; border: 0; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.vp-btn img { display: block; flex: none; }
+.vp-close { top: 6px; right: 7px; width: 16px; height: 16px; }
+.vp-close img { width: 15.33px; height: 15.33px; }
+.vp-full { bottom: 9px; right: 8px; width: 16px; height: 16px; }
+.vp-full img { width: 16.18px; height: 16px; }
+.vp-play { bottom: 8px; left: 50%; width: 12px; height: 16px; margin-left: -7px; }
+.vp-play img { width: 13.5px; height: 17.5px; }
+.vp-play .vp-pause { display: none; width: 12px; height: 16px; box-sizing: border-box; border-left: 4px solid #f8f8f9; border-right: 4px solid #f8f8f9; }
+.vprev.is-playing .vp-play img { display: none; }
+.vprev.is-playing .vp-play .vp-pause { display: block; }
+/* Corner resize handles: invisible 12px squares, under the icons */
+.vp-rs { position: absolute; width: 12px; height: 12px; z-index: 0; }
+.vp-rs[data-c="nw"] { left: 0; top: 0; cursor: nwse-resize; }
+.vp-rs[data-c="se"] { right: 0; bottom: 0; cursor: nwse-resize; }
+.vp-rs[data-c="ne"] { right: 0; top: 0; cursor: nesw-resize; }
+.vp-rs[data-c="sw"] { left: 0; bottom: 0; cursor: nesw-resize; }
+.vprev:fullscreen .vp-rs { display: none; }
+.vprev:fullscreen { width: 100%; height: 100%; cursor: default; }
+.vprev:fullscreen video { object-fit: contain; }
+
+/* ---------------- Sleep timeline Group ---------------- */
+.sleep-timeline {
+  flex: 0 0 var(--h-timeline);
+  height: var(--h-timeline);
+  margin: 5px 1px 3px;
+  position: relative;
+}
+.hypno-full {
+  position: absolute; left: 0; right: 0; top: 6px; height: 21px;
+  box-sizing: border-box; border: 2px solid var(--accent); border-radius: 4px; padding: 2px;
+  display: flex; background: rgba(73, 184, 237, 0.2);
+}
+.hypno-full .s-wake { background: var(--white); }
+.hypno-full i { cursor: pointer; }
+/* Marker Signal window Full Hypnogram (10409:25239): where the signal window sits in the open night */
+.sw-marker { position: absolute; top: 1px; width: 12px; height: 32px; margin-left: -6px; z-index: 2; pointer-events: none; }
+.sw-marker img { position: absolute; left: -3px; top: -2px; width: 18px; height: 38px; }
+.sw-marker[hidden] { display: none; }
+.hypno-connector { position: absolute; top: 26px; height: 9px; width: 2px; margin-left: -1px; background: var(--accent); }
+/* Closed: only the overview row remains, directly under the Signals (the Signals take the freed height) */
+.sleep-timeline:not(.is-open) { flex-basis: 48px; height: 48px; margin-top: 0; }
+.sleep-timeline:not(.is-open) .overview { top: 0; }
+.sleep-timeline:not(.is-open) .hypno-full,
+.sleep-timeline:not(.is-open) .hypno-connector,
+.sleep-timeline:not(.is-open) .sw-marker,
+.sleep-timeline:not(.is-open) .night-outline { display: none; }
+.hypno { display: flex; height: 100%; width: 100%; }
+.hypno i { display: block; height: 100%; flex: none; }
+.s-wake { background: var(--stage-wake); }
+.s-n1 { background: var(--stage-n1); }
+.s-n2 { background: var(--stage-n2); }
+.s-n3 { background: var(--stage-n3); }
+.s-rem { background: var(--stage-rem); }
+
+.overview { position: absolute; left: 0; right: 0; top: 34px; height: 48px; }
+.ground {
+  position: absolute; left: 0; right: 0; top: 1.17px; height: 33.95px;
+  box-sizing: border-box; border: 1px solid var(--grey-line); border-radius: 2px;
+  background-color: var(--grey-ground);
+  background-image:
+    radial-gradient(circle at 0.5px 0.5px, rgba(148, 148, 148, 0.4) 0.5px, transparent 0.6px),
+    radial-gradient(circle at 0.5px 0.5px, rgba(148, 148, 148, 0.4) 0.5px, transparent 0.6px);
+  background-size: 3px 6px, 3px 6px;
+  background-position: 0 2.5px, 1.5px 5.5px;
+}
+.time-tip {
+  position: absolute; bottom: calc(100% - 1.17px + 2px); z-index: 6; pointer-events: none; transform: translateX(-50%);
+  display: flex; align-items: flex-end; gap: 6px; padding: 4px; border-radius: 2px;
+  background: var(--grey-mid); color: var(--white);
+  font-size: 12px; font-weight: 500; letter-spacing: 0.18px; line-height: 9px; white-space: nowrap; font-variant-numeric: tabular-nums;
+}
+.time-tip[hidden] { display: none; }
+.days-box {
+  position: absolute; top: 1.17px; height: 33.95px; box-sizing: border-box;
+  left: 4.037%; width: 93.017%;
+  background: var(--white); border: 1px solid var(--grey-line);
+}
+.hypno-condensed { position: absolute; top: 4px; height: 8px; cursor: pointer; z-index: 1; }
+.hypno-condensed:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px; }
+.sleep-timeline.is-open .hypno-condensed:not(.is-active) { opacity: 0.3; }
+.night-outline[hidden] { display: none; }
+.night-outline {
+  position: absolute; top: 1px; height: 14px; box-sizing: border-box; pointer-events: none;
+  border: 2px solid var(--accent); border-radius: 2px;
+  background: linear-gradient(rgba(73, 184, 237, 0.1), rgba(73, 184, 237, 0.1)), linear-gradient(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.2));
+}
+
+/* Sleep stage tooltip (Sleep stage data + layout, 10385:1031) */
+.stage-tip {
+  position: absolute; bottom: calc(100% + 1px); z-index: 10; pointer-events: none;
+  display: flex; flex-direction: column; align-items: center; gap: 2px;
+  transform: translateX(-50%);
+}
+.stage-tip[hidden] { display: none; }
+.stage-tip .tip-body { display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+.stage-tip .tip-chips { display: flex; gap: 2px; }
+.stage-tip .chip {
+  box-sizing: border-box; padding: 4px; border-radius: 2px; border: 0.5px solid var(--tip-fill);
+  background: var(--tip-fill); color: var(--tip-chip-text);
+  font-size: 12px; font-weight: 500; letter-spacing: 0.18px; line-height: 8px; white-space: nowrap;
+}
+.stage-tip .tip-time {
+  display: flex; align-items: center; gap: 2px; padding: 4px; border-radius: 2px;
+  border: 1px solid var(--tip-border);
+  background: linear-gradient(var(--tip-tint), var(--tip-tint)), var(--white);
+  color: var(--tip-text); font-size: 12px; font-weight: 500; letter-spacing: 0.3px; line-height: 8px; white-space: pre;
+}
+.stage-tip .tip-time img { width: 10px; height: 6px; }
+.stage-tip .tip-dot { width: 2px; height: 2px; }
+.stage-tip.st-wake { --tip-fill: #e8e8e8; --tip-chip-text: #373b3f; --tip-border: rgba(55, 59, 63, 0.3);   --tip-tint: rgba(55, 59, 63, 0.05);   --tip-text: #373b3f; }
+.stage-tip.st-n1   { --tip-fill: #49b8ed; --tip-chip-text: #ffffff; --tip-border: rgba(73, 184, 237, 0.6);  --tip-tint: rgba(73, 184, 237, 0.05);  --tip-text: #1c4659; }
+.stage-tip.st-n2   { --tip-fill: #1463db; --tip-chip-text: #ffffff; --tip-border: rgba(20, 99, 219, 0.55); --tip-tint: rgba(20, 99, 219, 0.05);  --tip-text: #0f3061; }
+.stage-tip.st-n3   { --tip-fill: #0a1e47; --tip-chip-text: #ffffff; --tip-border: rgba(10, 30, 71, 0.3);    --tip-tint: rgba(10, 30, 71, 0.05);    --tip-text: #0a1e47; }
+.stage-tip.st-rem  { --tip-fill: #bc46e0; --tip-chip-text: #ffffff; --tip-border: rgba(188, 70, 224, 0.55); --tip-tint: rgba(188, 70, 224, 0.05);  --tip-text: #3b0f48; }
+/* Sleep off (Bottom Bar toggle): no hypnograms; the annotation ticks grow upward to fill the row (bottom edge unchanged) */
+.sleep-timeline.sleep-off .hypno-condensed,
+.sleep-timeline.sleep-off .night-outline { display: none; }
+.active-window {
+  position: absolute; top: 0; height: 36.27px; width: 7.99px; box-sizing: border-box;
+  border: 1px solid #e41f13; border-radius: 2px;
+  background: linear-gradient(rgba(228, 31, 19, 0.08), rgba(228, 31, 19, 0.08)), linear-gradient(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.2));
+}
+.day {
+  position: absolute; box-sizing: border-box; display: flex; align-items: flex-end;
+  padding: 4px 0 0 3px; border-left: 1px solid var(--grey-line);  /* text 4px from the line's left edge, as in Figma (1px line + 3px) */
+}
+.day.end { border-left: 0; border-right: 1px solid var(--grey-line); padding: 4px 3px 0 0; }
+.day span { display: flex; gap: 8px; font-size: 12px; font-weight: 500; letter-spacing: 0.18px; line-height: 8px; color: var(--grey-label); white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+/* ---------------- Bottom Bar ---------------- */
+.bottom-bar {
+  flex: 0 0 var(--h-bottom);
+  height: var(--h-bottom);
+  box-sizing: border-box;
+  padding: 4px 19px 4px 10px;
+  background: var(--white);
+  border-top: 1px solid var(--grey-border-2);
+  filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.15));
+  display: grid;
+  grid-template-columns: minmax(max-content, 1fr) auto minmax(max-content, 1fr);
+  column-gap: 24px;
+  align-items: center;
+  position: relative;
+  z-index: 3;
+}
+.bb-left { display: flex; align-items: center; gap: 20px; justify-self: start; }
+.bb-left .slot { width: 36px; height: 36px; display: flex; align-items: center; justify-content: center; }
+
+.bb-center { display: flex; align-items: center; gap: 40px; justify-self: center; }
+.nav { display: flex; align-items: center; gap: 12px; }
+.ico20 { width: 20px; height: 20px; position: relative; flex-shrink: 0; }
+.ico20 > img { position: absolute; }
+.mirror { transform: scaleX(-1); }
+.play-group { display: flex; align-items: center; gap: 6px; }
+.play-btn { display: flex; padding: 0; border: 0; border-radius: 4px; background: none; cursor: pointer; }
+.play-btn:hover { background: var(--accent-light); }
+.play-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.window-select {
+  height: 32px; box-sizing: border-box; padding: 7px 8px 7px 18px;
+  display: flex; align-items: center; gap: 20px;
+  background: var(--accent-light); border-bottom: 1px solid var(--accent); border-radius: 2px 2px 0 0;
+  font-size: 15px; font-weight: 500; letter-spacing: 0.375px; line-height: 11px; color: var(--black);
+}
+.window-select img { transform: rotate(90deg); width: 4.97px; height: 9.29px; transition: transform .15s; }
+button.window-select { min-width: 78.79px; justify-content: space-between; border-top: 0; border-left: 0; border-right: 0; font-family: inherit; cursor: pointer; }
+.window-select:hover { background: #c9eafa; }
+.window-select:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.window-select[aria-expanded="true"] img { transform: rotate(-90deg); }
+.window-wrap { position: relative; }
+.window-menu {
+  position: absolute; left: 0; right: 0; bottom: calc(100% + 4px); z-index: 30;
+  margin: 0; padding: 4px 0; list-style: none; box-sizing: border-box;
+  background: var(--white); border: 1px solid var(--grey-border-2); border-radius: 4px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+.window-menu[hidden] { display: none; }
+.window-menu li {
+  padding: 6px 8px 6px 18px; cursor: pointer;
+  font-size: 15px; font-weight: 500; letter-spacing: 0.375px; line-height: 11px; color: var(--black);
+}
+.window-menu li:hover, .window-menu li.is-focus { background: var(--accent-light); }
+.window-menu li[aria-selected="true"] { color: var(--accent); }
+.speed { display: flex; align-items: center; gap: 12px; }
+.speed-ctrl { display: flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 500; letter-spacing: 0.375px; line-height: 11px; color: var(--black); }
+.bb-right { display: flex; align-items: center; gap: 40px; justify-self: end; }
+.toggle { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 500; line-height: 11px; color: var(--black); white-space: nowrap; }
+.toggle.qeeg { gap: 7px; }
+/* Narrower windows: tighten horizontal gaps only (heights unchanged) */
+@media (max-width: 1599px) {
+  .top-right { gap: 12px; }
+  .params { gap: 10px; }
+  .switch-item { padding-left: 4px; padding-right: 4px; }
+  .bb-center { gap: 24px; }
+  .bb-right { gap: 24px; }
+}
+.fs { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
+/* Button tooltip (Tooltip 5413:14907): dark pill, Ubuntu Medium 12px, optional shortcut chip (white 25%, 10px) and a 3px
+   dot on the side of the button. Above the button (dot below) when it sits in the lower half of the window, else below. */
+.btn-tip {
+  position: fixed; z-index: 120; pointer-events: none; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  font-family: 'Ubuntu', sans-serif; font-weight: 500;
+}
+.btn-tip[hidden] { display: none; }
+.btn-tip > img { width: 3px; height: 3px; flex: none; }
+.btn-tip.is-above > img { order: 2; }
+.bt-pill { display: flex; align-items: center; gap: 2px; min-height: 17px; box-sizing: border-box; padding: 2px; border-radius: 4px; background: #1b1d3a; }
+.bt-txt { display: flex; align-items: center; justify-content: center; padding: 2px; font-size: 12px; line-height: 9px; letter-spacing: 0.18px; color: #fff; white-space: nowrap; }
+.bt-key { display: flex; align-items: center; justify-content: center; padding: 3px 2px; border-radius: 2px; background: rgba(255, 255, 255, 0.25);
+  font-size: 10px; line-height: 7px; letter-spacing: 0.25px; color: #fff; white-space: nowrap; }
+.bt-key[hidden] { display: none; }
+</style>
+
+<div class="app" data-node-id="10368:36831">
+
+  <!-- Top Bar -->
+  <header class="top-bar" data-node-id="10368:36910">
+    <div class="top-left">
+      <div class="menu-btn"><img src="assets/menu.svg" alt="Menu"></div>
+      <div class="patient">
+        <div class="patient-row">
+          <span class="patient-name">Jean Dupont de la pépinière</span>
+          <span class="vsep"></span>
+          <span class="patient-meta"><span>1976-10-19</span><span class="sep"></span><span>48 y.o.</span></span>
+        </div>
+        <div class="patient-row">
+          <span class="patient-rec">Enregistrement 0538</span>
+          <span class="ai-chip" data-node-id="10400:22681">Normal (certitude x%)</span>
+        </div>
+      </div>
+    </div>
+    <div class="top-right">
+      <div class="params">
+        <div class="dd-group">
+          <div class="dd first">
+            <div class="dd-text"><span class="dd-value">EEG</span></div>
+            <div class="dd-tail"><img class="arrow" src="assets/arrow-down.svg" alt=""><span class="vsep"></span></div>
+          </div>
+          <div class="dd">
+            <div class="dd-text"><span class="dd-label">Gain</span><span class="dd-value">100 µV/cm</span></div>
+            <div class="dd-tail"><img class="arrow" src="assets/arrow-down.svg" alt=""><span class="vsep"></span></div>
+          </div>
+          <div class="dd">
+            <div class="dd-text" style="align-items:flex-end"><span class="dd-label">Passe Haut</span><span class="dd-value">0.53 Hz</span></div>
+            <div class="dd-tail"><img class="arrow" src="assets/arrow-down.svg" alt=""><span class="vsep"></span></div>
+          </div>
+          <div class="dd last">
+            <div class="dd-text" style="align-items:flex-end"><span class="dd-label">Passe Bas</span><span class="dd-value">70 Hz</span></div>
+            <div class="dd-tail"><img class="arrow" src="assets/arrow-down.svg" alt=""></div>
+          </div>
+        </div>
+        <div class="dd montage">
+          <div class="dd-text"><span class="dd-label">Montage</span><span class="dd-value">21 LONG</span></div>
+          <div class="dd-tail"><img class="arrow" src="assets/arrow-down-montage.svg" alt=""><span class="vsep"></span><img class="edit" src="assets/edit.svg" alt="Edit montage"></div>
+        </div>
+      </div>
+      <div class="switch-item">
+        <img src="assets/as-recorded.svg" alt="" style="width:18px;height:18px">
+        <span class="lbl">As recorded</span>
+        <span class="switch off"><img src="assets/switch-off.svg" alt="Off"></span>
+      </div>
+      <div class="switch-item">
+        <img src="assets/notch.svg" alt="" style="width:10.7px;height:17.07px">
+        <span class="lbl">Notch</span>
+        <span class="switch off"><img src="assets/switch-off.svg" alt="Off"></span>
+      </div>
+    </div>
+    <div class="top-end"><img src="assets/menu.svg" alt="Menu"></div>
+  </header>
+
+  <!-- Band + Signals -->
+  <main class="middle">
+    <div class="band">
+      <div class="eye-toggle" data-node-id="10368:36841">
+        <img class="eye" src="assets/eye.svg" alt="Hidden channels">
+        <span class="badge">2</span>
+      </div>
+    </div>
+
+    <section class="signals" data-node-id="10370:44081" aria-label="EEG signals">
+      <div class="grid" id="grid"></div>
+      <div class="deriv-list" data-node-id="10368:43715"></div>
+      <div class="channels" id="channels"></div>
+      <div class="seconds" id="seconds"></div>
+      <div class="cursor-line" id="cursor-line" hidden></div>
+    </section>
+
+    <div class="overlay">
+      <div class="annots" id="annots"><div class="annot-sel" id="annot-sel" hidden></div></div>
+      <div class="video-marker is-unselected" data-node-id="10368:43857">
+        <img class="line" src="assets/video-line-2px.svg" alt="">
+        <div class="cam"><img src="assets/video-camera-unselected.svg" alt="Video position"></div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Sleep timeline Group -->
+  <section class="sleep-timeline sleep-off" id="sleep-timeline" data-node-id="10374:44283" aria-label="Frise du sommeil">
+    <!-- Pruning variant: no hypnogram (kept hidden only so the shared script still finds its elements) -->
+    <div class="hypno-full" data-node-id="10374:52944" style="display:none"><div class="hypno" id="hypno-full"></div></div>
+    <div class="hypno-connector" id="hypno-connector" data-node-id="10385:1032" style="display:none"></div>
+    <span class="sw-marker" id="sw-marker" data-node-id="10409:25239" hidden><img src="assets/marker-signal-window-2.svg" alt=""></span>
+    <div class="stage-tip" id="stage-tip" role="tooltip" hidden>
+      <div class="tip-body">
+        <div class="tip-chips"><span class="chip" id="tip-stage"></span><span class="chip" id="tip-dur"></span></div>
+        <div class="tip-time"><span id="tip-start"></span><img id="tip-arrow" src="" alt="to"><span id="tip-end"></span></div>
+      </div>
+      <img class="tip-dot" id="tip-dot" src="" alt="">
+    </div>
+    <div class="overview" id="overview">
+      <div class="ground"></div>
+      <div class="days-box" id="days-box"></div>
+      <div class="hl-strip" id="hl-strip" data-node-id="10671:18557"></div>
+      <div class="time-tip" id="time-tip" hidden data-node-id="10396:21919"><span id="time-tip-date"></span><span id="time-tip-hour"></span></div>
+      <div class="annot-tip" id="annot-tip" role="tooltip" hidden data-node-id="10663:2904"><span></span></div>
+    </div>
+  </section>
+
+  <!-- Annotation menu (10646:35673), opened by the double-click + click selection or by double-clicking an annotation -->
+  <div class="amenu" id="amenu" hidden>
+    <div class="am-l1">
+      <div class="am-card"><div class="am-list"></div><img class="am-sep" src="assets/annot-sep.svg" alt="">
+        <div class="am-free"><input class="am-input" type="text" placeholder="Champs libre..." aria-label="Champs libre"></div></div>
+      <div class="am-card am-foot"></div>
+    </div>
+    <div class="am-card am-l2" hidden><div class="am-list"></div><img class="am-sep" src="assets/annot-sep.svg" alt="">
+      <div class="am-free"><input class="am-input" type="text" placeholder="Champs libre..." aria-label="Champs libre"></div></div>
+    <div class="am-card am-comment" hidden><input class="am-input" type="text" placeholder="Commentaire optionnel" aria-label="Commentaire optionnel"></div>
+  </div>
+
+  <!-- Video preview (Video interface, 10652:47509): opened with V or the video marker -->
+  <div class="amenu hmenu" id="hl-title" hidden role="dialog" aria-label="Video highlight" data-node-id="10671:18717">
+    <div class="am-l1">
+      <div class="hm-title">
+        <div class="ht-time"><img src="assets/hl-title-duration.svg" alt=""><span><span id="ht-a">00:00:00</span><img src="assets/pp-arrow-dir.svg" alt="to"><span id="ht-b">00:00:01</span></span></div>
+        <input class="ht-title" id="ht-title" type="text" placeholder="Video highlight title" aria-label="Video highlight title" autocomplete="off">
+      </div>
+      <div class="am-card hm-l1"><div class="am-list"></div></div>
+      <div class="am-card am-foot is-delete hm-del" hidden><div class="am-btn"><img src="assets/annot-delete.svg" alt=""><span>Delete</span></div></div>
+    </div>
+    <div class="am-card am-l2" hidden><div class="am-list"></div></div>
+  </div>
+  <div class="pp-back" id="pp-back" hidden>
+    <section class="pp" role="dialog" aria-modal="true" aria-labelledby="pp-h" data-node-id="10654:53053">
+      <header class="pp-head"><h2 id="pp-h">Video highlights confirmation</h2><button type="button" class="pp-x" id="pp-x" aria-label="Close"><img src="assets/pp-close.svg" alt=""></button></header>
+      <div class="pp-body">
+        <div class="pp-caution"><img src="assets/pp-caution.svg" alt=""><span>Before leaving, please verify the selected video highlights. All video data <b>not highlighted</b> will be <b>lost</b>.</span></div>
+        <div class="pp-container">
+          <div class="pp-days" id="pp-days" role="tablist" data-node-id="10654:53121"></div>
+          <div class="pp-table" role="table" aria-label="Video highlights">
+            <div class="pp-tr pp-th" role="row"><span class="pp-c1">Type</span><span class="pp-c2">Time</span><span class="pp-c3">Title</span><span class="pp-c4">Actions</span></div>
+            <div class="pp-rows" id="pp-rows"></div>
+          </div>
+        </div>
+      </div>
+      <div class="pp-sel" data-node-id="10668:9443">
+        <div class="pp-line">
+          <button type="button" class="pp-check" id="pp-check" role="checkbox" aria-checked="false" aria-label="Also select all video portions associated with"></button>
+          <span>Also select <b>all video portions</b> associated with</span>
+          <span class="pp-types" id="pp-types" role="group" aria-label="Annotation types" data-node-id="10668:9446"></span>
+        </div>
+        <div class="pp-line margin is-off" id="pp-margin">
+          <span>Add a margin of</span>
+          <div class="pp-ddw" data-node-id="10654:53951"><button type="button" class="pp-dd dur" id="pp-dur" aria-haspopup="listbox"><span>20 seconds</span><img src="assets/pp-single-arrow.svg" alt=""></button><ul class="pp-menu" role="listbox" hidden></ul></div>
+          <button type="button" class="pp-tog" id="pp-before" aria-pressed="true"><img src="assets/pp-ok-blue.svg" alt="">before</button>
+          <span>&amp;</span>
+          <button type="button" class="pp-tog" id="pp-after" aria-pressed="false"><img src="assets/pp-ok-blue.svg" alt="">after</button>
+          <span>each annotations.</span>
+        </div>
+      </div>
+      <footer class="pp-foot"><button type="button" class="pp-btn back" id="pp-back-btn">Cancel</button><button type="button" class="pp-btn ok" id="pp-ok">Confirm<img src="assets/pp-ok-white.svg" alt=""></button></footer>
+    </section>
+  </div>
+  <div class="btn-tip" id="btn-tip" role="tooltip" hidden data-node-id="5413:14907"><img src="assets/tooltip-dot.svg" alt=""><div class="bt-pill"><span class="bt-txt"></span><span class="bt-key"></span></div></div>
+  <div class="hl-cursor" id="hl-cursor" hidden aria-hidden="true"><kbd>D</kbd><span>Start highlight</span></div>
+  <div class="vprev" id="vprev" hidden data-node-id="10652:47509" aria-label="Aperçu vidéo">
+    <video id="vprev-video" src="assets/video/recording.mp4" preload="metadata" playsinline loop muted></video>
+    <div class="vp-rs" data-c="nw"></div><div class="vp-rs" data-c="ne"></div><div class="vp-rs" data-c="sw"></div><div class="vp-rs" data-c="se"></div>
+    <button type="button" class="vp-btn vp-close" id="vp-close" aria-label="Fermer la vidéo" data-node-id="10653:47540"><img src="assets/video-close.svg" alt=""></button>
+    <button type="button" class="vp-btn vp-play" id="vp-play" aria-label="Lecture" data-node-id="10653:47547"><img src="assets/video-play.svg" alt=""><span class="vp-pause"></span></button>
+    <button type="button" class="vp-btn vp-full" id="vp-full" aria-label="Plein écran" data-node-id="10652:47515"><img src="assets/video-fullscreen.svg" alt=""></button>
+  </div>
+
+  <!-- Bottom Bar -->
+  <footer class="bottom-bar" data-node-id="10368:36847">
+    <div class="bb-left">
+      <div class="slot"><img src="assets/pdf.svg" alt="PDF report" style="width:21.55px;height:26px"></div>
+      <div class="slot"><img src="assets/shortcut.svg" alt="Keyboard shortcuts" style="width:29.92px;height:21.46px"></div>
+      <button type="button" class="hl-btn" id="hl-btn" role="switch" aria-checked="false" data-node-id="10594:45700">
+        <span class="hl-face">
+          <span class="hl-tog" aria-hidden="true"></span>
+          <span class="hl-in">
+            <img class="ico-default" src="assets/highlight.svg" alt="">
+            <img class="ico-off" src="assets/highlight-unavailable.svg" alt="">
+            <span class="hl-lbl" id="hl-lbl">Highlight</span>
+          </span>
+        </span>
+      </button>
+    </div>
+
+    <div class="bb-center">
+      <div class="nav">
+        <span class="ico20"><img src="assets/first-frame.svg" alt="First page" style="inset:0;width:20px;height:20px"></span>
+        <span class="ico20 mirror"><img src="assets/prev-annotation.svg" alt="Previous annotation" style="left:0;top:2.5px;width:20.08px;height:15px"></span>
+        <span class="ico20" style="width:25px"><img src="assets/prev-second.svg" alt="Previous second" style="left:0;top:3px;width:26px;height:14px"></span>
+        <div class="play-group">
+          <button type="button" class="play-btn" id="play-back" aria-label="Previous page"><img class="mirror" src="assets/play-back.svg" alt="" style="width:22px;height:26px"></button>
+          <div class="window-wrap">
+            <button type="button" class="window-select" id="window-select" aria-haspopup="listbox" aria-expanded="false" aria-label="Signal window duration"><span id="window-value">20s</span><img src="assets/window-arrow.svg" alt=""></button>
+            <ul class="window-menu" id="window-menu" role="listbox" aria-label="Signal window duration" hidden></ul>
+          </div>
+          <button type="button" class="play-btn" id="play-fwd" aria-label="Next page"><img src="assets/play.svg" alt="" style="width:22px;height:26px"></button>
+        </div>
+        <span class="ico20"><img src="assets/next-second.svg" alt="Next second" style="left:0;top:3px;width:26px;height:14px"></span>
+        <span class="ico20"><img src="assets/next-annotation.svg" alt="Next annotation" style="left:0;top:2.5px;width:20.08px;height:15px"></span>
+        <span class="ico20 mirror"><img src="assets/last-frame.svg" alt="Last page" style="inset:0;width:20px;height:20px"></span>
+      </div>
+      <div class="speed">
+        <img src="assets/fast-forward.svg" alt="Fast forward" style="width:31.04px;height:36px;margin:0 -1px">
+        <div class="speed-ctrl">
+          <img src="assets/minus.svg" alt="Slower" style="width:20px;height:20px">
+          <span>x3</span>
+          <img src="assets/plus.svg" alt="Faster" style="width:20px;height:20px">
+        </div>
+      </div>
+    </div>
+
+    <div class="bb-right">
+      <div class="toggle">
+        <img src="assets/algorithm.svg" alt="" style="width:16.47px;height:17.22px">
+        <span>Algorithme</span>
+        <span class="switch on"><img src="assets/switch-on-mat.svg" alt="On"></span>
+      </div>
+      <div class="toggle qeeg">
+        <span class="switch off"><img src="assets/switch-off.svg" alt="Off"></span>
+        <span>qEEG</span>
+      </div>
+      <div class="fs"><img src="assets/fullscreen.svg" alt="Full screen" style="width:23.17px;height:22.9px"></div>
+    </div>
+  </footer>
+</div>
+
+<script>
+(function () {
+  // ---- Signals: channel rows, mirrored from "Signals + derivation group" (10368:43718) ----
+  // [label, trace file, trace height, flipped]
+  var groups = [
+    { cls: 'g1', gap: 9, rows: [['FP2-F4', 'sig-00', 19.27], ['F4-C4', 'sig-01', 22.78, true], ['C4-P4', 'sig-02', 22.78], ['P4-O2', 'sig-03', 27.19]] },
+    { dash: 15 },
+    { cls: 'g2', gap: 9, rows: [['FP2-F8', 'sig-04', 29.21], ['F8-T4', 'sig-05', 22.78], ['T4-T6', 'sig-06', 19.27], ['T6-O2', 'sig-07', 19.27]] },
+    { dash: 15 },
+    { cls: 'g3', gap: 10, rows: [['FZ-CZ', 'sig-08', 22.78], ['CZ-PZ', 'sig-09', 22.78]] },
+    { dash: 15 },
+    { cls: 'g4', gap: 10, rows: [['FP1-F3', 'sig-10', 19.27], ['F3-C3', 'sig-11', 27.19], ['C3-P3', 'sig-12', 29.21], ['P3-O1', 'sig-13', 27.19]] },
+    { dash: 5 },
+    { cls: 'g5', gap: 10, rows: [['FP1-F7', 'sig-14', 29.21], ['F7-T3', 'sig-15', 22.78], ['T3-T5', 'sig-16', 19.27], ['T5-O1', 'sig-17', 27.19]] },
+    { dash: 5 },
+    { ecg: true }
+  ];
+  function strip(file, alt) {
+    var src = 'assets/' + file + '.svg';
+    return '<div class="strip" data-src="' + src + '" aria-label="' + alt + '" role="img"></div>';
+  }
+  var html = '';
+  groups.forEach(function (g) {
+    if (g.dash) { html += '<div class="dash h' + g.dash + '">-</div>'; return; }
+    if (g.ecg) {
+      html += '<div class="ecg-row"><div class="ch-label-col"><span class="ch-label">ECG</span></div>' +
+              '<div class="ecg-trace">' + strip('sig-18', 'ECG trace') + '</div></div>';
+      return;
+    }
+    html += '<div class="deriv-group ' + g.cls + '">';
+    g.rows.forEach(function (r) {
+      html += '<div class="ch' + (g.gap === 10 ? ' g10' : '') + '" style="height:' + Math.max(20, r[2]) + 'px">' +
+                '<div class="ch-label-col"><span class="ch-label">' + r[0] + '</span></div>' +
+                '<div class="trace' + (r[3] ? ' flip' : '') + '">' + strip(r[1], r[0] + ' trace') + '</div>' +
+              '</div>';
+    });
+    html += '</div>';
+  });
+  document.getElementById('channels').innerHTML = html;
+
+  // ---- Seconds markers: 22 labels, 85.39px apart on a 1852px-wide track ----
+  // (labels are drawn by the playback clock at the end of this script; the first one, 15:06:56, sits 5.69px in)
+
+  // ---- Sleep stage data: "Stade sommeil réaliste" (Sleep stage data + layout, 10385:1031) ----
+  // Night of 2026/09/28 22:00 → 2026/09/29 08:00. [stage, duration, % of total, start, end]
+  var NIGHT = [
+    ['Éveil','10 min','1,67','2026/09/28 22:00','2026/09/28 22:10'],
+    ['N1','5 min','0,83','2026/09/28 22:10','2026/09/28 22:15'],
+    ['N2','15 min','2,50','2026/09/28 22:15','2026/09/28 22:30'],
+    ['N3','45 min','7,50','2026/09/28 22:30','2026/09/28 23:15'],
+    ['N2','10 min','1,67','2026/09/28 23:15','2026/09/28 23:25'],
+    ['REM','10 min','1,67','2026/09/28 23:25','2026/09/28 23:35'],
+    ['Éveil','3 min','0,50','2026/09/28 23:35','2026/09/28 23:38'],
+    ['N1','3 min','0,50','2026/09/28 23:38','2026/09/28 23:41'],
+    ['N2','25 min','4,17','2026/09/28 23:41','2026/09/29 00:06'],
+    ['N3','40 min','6,67','2026/09/29 00:06','2026/09/29 00:46'],
+    ['N2','15 min','2,50','2026/09/29 00:46','2026/09/29 01:01'],
+    ['REM','20 min','3,33','2026/09/29 01:01','2026/09/29 01:21'],
+    ['Éveil','4 min','0,67','2026/09/29 01:21','2026/09/29 01:25'],
+    ['N1','4 min','0,67','2026/09/29 01:25','2026/09/29 01:29'],
+    ['N2','40 min','6,67','2026/09/29 01:29','2026/09/29 02:09'],
+    ['N3','25 min','4,17','2026/09/29 02:09','2026/09/29 02:34'],
+    ['N2','10 min','1,67','2026/09/29 02:34','2026/09/29 02:44'],
+    ['REM','25 min','4,17','2026/09/29 02:44','2026/09/29 03:09'],
+    ['Éveil','5 min','0,83','2026/09/29 03:09','2026/09/29 03:14'],
+    ['N1','4 min','0,67','2026/09/29 03:14','2026/09/29 03:18'],
+    ['N2','1h 5min','10,83','2026/09/29 03:18','2026/09/29 04:23'],
+    ['N3','10 min','1,67','2026/09/29 04:23','2026/09/29 04:33'],
+    ['N2','10 min','1,67','2026/09/29 04:33','2026/09/29 04:43'],
+    ['REM','30 min','5,00','2026/09/29 04:43','2026/09/29 05:13'],
+    ['Éveil','6 min','1,00','2026/09/29 05:13','2026/09/29 05:19'],
+    ['N1','4 min','0,67','2026/09/29 05:19','2026/09/29 05:23'],
+    ['N2','1h 10min','11,67','2026/09/29 05:23','2026/09/29 06:33'],
+    ['REM','35 min','5,83','2026/09/29 06:33','2026/09/29 07:08'],
+    ['N1','4 min','0,67','2026/09/29 07:08','2026/09/29 07:12'],
+    ['N2','40 min','6,67','2026/09/29 07:12','2026/09/29 07:52'],
+    ['Éveil','8 min','1,33','2026/09/29 07:52','2026/09/29 08:00']
+  ];
+  // 1st and 3rd nights: "1st / 3e hypnogramme - Stade sommeil réaliste" (10389:1319, 10389:2581).
+  // Rows are stage;duration;%;start;end — times from 12:00 on belong to the evening date, earlier ones to the morning date.
+  function parseNight(rows, evening, morning) {
+    return rows.split('|').map(function (r) {
+      var c = r.split(';');
+      function stamp(t) { return (t >= '12:00' ? evening : morning) + ' ' + t; }
+      return [c[0], c[1], c[2], stamp(c[3]), stamp(c[4])];
+    });
+  }
+  var NIGHT_1 = parseNight('Éveil;08 min;1,75;23:54;00:02|N1;04 min;0,88;00:02;00:06|N2;11 min;2,41;00:06;00:17|N3;34 min;7,46;00:17;00:51|N2;08 min;1,75;00:51;00:59|REM;08 min;1,75;00:59;01:07|Éveil;02 min;0,44;01:07;01:09|N1;02 min;0,44;01:09;01:11|N2;19 min;4,17;01:11;01:30|N3;30 min;6,58;01:30;02:00|N2;11 min;2,41;02:00;02:11|REM;15 min;3,29;02:11;02:26|Éveil;03 min;0,66;02:26;02:29|N1;03 min;0,66;02:29;02:32|N2;30 min;6,58;02:32;03:02|N3;19 min;4,17;03:02;03:21|N2;08 min;1,75;03:21;03:29|REM;19 min;4,17;03:29;03:48|Éveil;04 min;0,88;03:48;03:52|N1;03 min;0,66;03:52;03:55|N2;50 min;10,96;03:55;04:45|N3;08 min;1,75;04:45;04:53|N2;08 min;1,75;04:53;05:01|REM;23 min;5,04;05:01;05:24|Éveil;05 min;1,10;05:24;05:29|N1;03 min;0,66;05:29;05:32|N2;53 min;11,62;05:32;06:25|REM;26 min;5,70;06:25;06:51|N1;03 min;0,66;06:51;06:54|N2;30 min;6,58;06:54;07:24|Éveil;06 min;1,32;07:24;07:30', '2026/09/27', '2026/09/28');
+  var NIGHT_3 = parseNight('Éveil;07 min;1,58;00:04;00:11|N1;03 min;0,68;00:11;00:14|N2;11 min;2,48;00:14;00:25|N3;35 min;7,88;00:25;01:00|N2;08 min;1,80;01:00;01:08|REM;07 min;1,58;01:08;01:15|Éveil;02 min;0,45;01:15;01:17|N1;02 min;0,45;01:17;01:19|N2;19 min;4,28;01:19;01:38|N3;31 min;6,98;01:38;02:09|N2;11 min;2,48;02:09;02:20|REM;15 min;3,38;02:20;02:35|Éveil;03 min;0,68;02:35;02:38|N1;03 min;0,68;02:38;02:41|N2;30 min;6,76;02:41;03:11|N3;19 min;4,28;03:11;03:30|N2;08 min;1,80;03:30;03:38|REM;19 min;4,28;03:38;03:57|Éveil;03 min;0,68;03:57;04:00|N1;03 min;0,68;04:00;04:03|N2;49 min;11,04;04:03;04:52|N3;08 min;1,80;04:52;05:00|N2;08 min;1,80;05:00;05:08|REM;21 min;4,73;05:08;05:29|Éveil;04 min;0,90;05:29;05:33|N1;02 min;0,45;05:33;05:35|N2;52 min;11,71;05:35;06:27|REM;24 min;5,41;06:27;06:51|N1;02 min;0,45;06:51;06:53|N2;30 min;6,76;06:53;07:23|Éveil;05 min;1,13;07:23;07:28', '2026/09/29', '2026/09/30');
+  var NIGHTS = [NIGHT_1, NIGHT, NIGHT_3];
+
+  var STAGE = { 'Éveil': 'wake', 'N1': 'n1', 'N2': 'n2', 'N3': 'n3', 'REM': 'rem' };
+  function pctNum(e) { return parseFloat(e[2].replace(',', '.')); }
+  // unit = share of the container (in %) taken by 1 % of the night
+  function segs(list, unit) {
+    return list.map(function (e, i) {
+      return '<i class="s-' + STAGE[e[0]] + '" data-i="' + i + '" style="width:' + (pctNum(e) * unit).toFixed(4) + '%"></i>';
+    }).join('');
+  }
+
+  // ---- Overview timeline: x positions from the 1918px-wide Figma group, converted to % ----
+  var W = 1918, X0 = 1;
+  function pct(x) { return ((x - X0) / W * 100).toFixed(4) + '%'; }
+  var ov = document.getElementById('overview');
+  var out = '';
+  // Condensed hypnograms: [x, frame width]; stages fill the frame
+  var CONDENSED = [[149, 248], [716, 237], [1349, 248]];
+  function totalPct(list) { return list.reduce(function (s, e) { return s + pctNum(e); }, 0); }
+  // Pruning variant: no sleep periods in the timeline; CONDENSED only anchors the time scale below
+  if (false) CONDENSED.forEach(function (h, n) {
+    var list = NIGHTS[n];
+    out += '<div class="night-outline" data-night="' + n + '" style="left:' + pct(h[0] + 0.54) + ';width:' + ((h[1] + 2) / W * 100).toFixed(4) + '%"></div>';
+    out += '<div class="hypno-condensed hypno" data-night="' + n + '" role="button" tabindex="0" aria-pressed="false"' +
+           ' aria-label="Nuit ' + (n + 1) + ', du ' + list[0][3] + ' au ' + list[list.length - 1][4] + '"' +
+           ' style="left:' + pct(h[0]) + ';width:' + (h[1] / W * 100).toFixed(4) + '%">' + segs(list, 100 / totalPct(list)) + '</div>';
+  });
+  // ---- Time scale of the overview, taken from the hypnograms ----
+  // Each condensed hypnogram's left/right edge is pinned to its night's first start / last end time; between and
+  // beyond them time runs linearly. Midnight markers and the hover tooltip both use this scale, so they agree.
+  function stampMs(st) { return Date.UTC(+st.slice(0, 4), +st.slice(5, 7) - 1, +st.slice(8, 10), +st.slice(11, 13), +st.slice(14, 16)); }  // yyyy/mm/dd hh:mm
+  var ANCHORS = [];
+  CONDENSED.forEach(function (h, n) {
+    var l = NIGHTS[n];
+    ANCHORS.push([h[0], stampMs(l[0][3])], [h[0] + h[1], stampMs(l[l.length - 1][4])]);
+  });
+  function interp(v, from, to) {  // piecewise-linear through ANCHORS, extrapolating with the first/last segment
+    var i = 0;
+    while (i < ANCHORS.length - 2 && v > ANCHORS[i + 1][from]) i++;
+    var a = ANCHORS[i], b = ANCHORS[i + 1];
+    return a[to] + (v - a[from]) * (b[to] - a[to]) / (b[from] - a[from]);
+  }
+  // Variant: the 3-day box is a plain linear 72h scale, 2026/09/27 15:24 → 2026/09/30 15:24 (hypnograms are hidden here,
+  // so their anchors no longer drive it). Everything time-related (tooltip, markers, window, highlights, popup) reads this.
+  var BOX_L = 78.43, BOX_R = 1863;
+  var REC_START = Date.UTC(2026, 8, 27, 15, 24), REC_END = REC_START + 72 * 3600000;
+  function figmaXToTime(x) { return REC_START + (x - BOX_L) * (REC_END - REC_START) / (BOX_R - BOX_L); }
+  function timeToFigmaX(t) { return BOX_L + (t - REC_START) * (BOX_R - BOX_L) / (REC_END - REC_START); }
+  function two(n) { return (n < 10 ? '0' : '') + n; }
+  function fmtDate(t) { return t.getUTCFullYear() + '/' + two(t.getUTCMonth() + 1) + '/' + two(t.getUTCDate()); }
+  function fmtHour(t) { return two(t.getUTCHours()) + ':' + two(t.getUTCMinutes()); }
+  // Midnight markers inside the 3-day box: [day, top, height]; all markers (incl. the end one) share top 1.17 / bottom 48
+  [[1, 1.17, 46.83], [2, 1.17, 46.83], [3, 1.17, 46.83]].forEach(function (d) {
+    var t = Date.UTC(2026, 8, 27 + d[0]), x = timeToFigmaX(t);
+    if (x < BOX_L || x > BOX_R) return;
+    out += '<div class="day" style="left:' + pct(x) + ';top:' + d[1] + 'px;height:' + d[2] + 'px"><span><span>' + fmtDate(new Date(t)) + '</span><span>00:00</span></span></div>';
+  });
+  // Left edge of the box: recording start
+  var tStart = new Date(REC_START);
+  out += '<div class="day start" style="left:' + pct(BOX_L) + ';top:1.17px;height:46.83px"><span><span>' + fmtDate(tStart) + '</span><span>' + fmtHour(tStart) + '</span></span></div>';
+  // Right edge of the box: the time it actually stands for on this scale
+  var tEnd = new Date(Math.round(figmaXToTime(BOX_R) / 60000) * 60000);
+  out += '<div class="day end" style="right:' + ((W + X0 - BOX_R) / W * 100).toFixed(4) + '%;top:1.17px;height:46.83px"><span><span>' + fmtDate(tEnd) + '</span><span>' + fmtHour(tEnd) + '</span></span></div>';
+  out += '<div class="active-window" id="active-window"></div>';
+  ov.insertAdjacentHTML('beforeend', out);
+
+  // ---- Sleep timeline behaviour ----
+  var tl = document.getElementById('sleep-timeline');
+  var full = document.getElementById('hypno-full');
+  var connector = document.getElementById('hypno-connector');
+  var tip = document.getElementById('stage-tip');
+  var active = -1;
+
+  // Vertical connector from the fully displayed hypnogram down to the centre of the active night's outline
+  function drawVectors() {
+    if (active < 0) return;
+    var box = tl.getBoundingClientRect();
+    var o = ov.querySelector('.night-outline[data-night="' + active + '"]').getBoundingClientRect();
+    connector.style.left = (o.left + o.width / 2 - box.left) + 'px';
+  }
+
+  function setNight(n) {
+    active = (n === active) ? -1 : n;
+    tl.classList.toggle('is-open', active >= 0);
+    ov.querySelectorAll('.hypno-condensed').forEach(function (el) {
+      var on = +el.dataset.night === active;
+      el.classList.toggle('is-active', on);
+      el.setAttribute('aria-pressed', on ? 'true' : 'false');
+    });
+    ov.querySelectorAll('.night-outline').forEach(function (el) { el.hidden = +el.dataset.night !== active; });
+    tip.hidden = true;
+    if (active >= 0) {
+      var list = NIGHTS[active];
+      var total = list.reduce(function (s, e) { return s + pctNum(e); }, 0);
+      full.innerHTML = segs(list, 100 / total);
+      drawVectors();
+    }
+    updateMarker();
+  }
+
+  ov.addEventListener('click', function (e) {
+    var h = e.target.closest('.hypno-condensed');
+    if (h) setNight(+h.dataset.night);
+  });
+  ov.addEventListener('keydown', function (e) {
+    var h = e.target.closest('.hypno-condensed');
+    if (h && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); setNight(+h.dataset.night); }
+  });
+  window.addEventListener('resize', drawVectors);
+
+  // Stage tooltip, centred above the hovered stage — on the fully displayed hypnogram and on the condensed ones
+  function showTip(seg, list) {
+    var d = list[+seg.dataset.i];
+    var key = STAGE[d[0]];
+    tip.className = 'stage-tip st-' + key;
+    document.getElementById('tip-stage').textContent = d[0].toUpperCase();
+    document.getElementById('tip-dur').textContent = d[1];
+    document.getElementById('tip-start').textContent = d[3];
+    document.getElementById('tip-end').textContent = d[4].replace(' ', '  ');
+    document.getElementById('tip-arrow').src = 'assets/tip-arrow-' + key + '.svg';
+    document.getElementById('tip-dot').src = 'assets/tip-dot-' + key + '.svg';
+    var box = tl.getBoundingClientRect(), r = seg.getBoundingClientRect();
+    tip.hidden = false;
+    tip.style.bottom = (box.bottom - r.top + 1) + 'px';  // sits just above the hovered bar
+    // keep the tooltip on screen near the edges; the dot stays on the stage's centre
+    var cx = r.left + r.width / 2 - box.left, half = tip.offsetWidth / 2;
+    var x = Math.min(Math.max(cx, half - box.left + 4), box.width - half - 4 + (window.innerWidth - box.right));
+    tip.style.left = x + 'px';
+    tip.querySelector('.tip-dot').style.transform = 'translateX(' + (cx - x) + 'px)';
+  }
+  full.addEventListener('mouseover', function (e) {
+    var seg = e.target.closest('i');
+    if (seg && active >= 0) showTip(seg, NIGHTS[active]);
+  });
+  full.addEventListener('mouseleave', function () { tip.hidden = true; });
+  ov.addEventListener('mouseover', function (e) {
+    var seg = e.target.closest('.hypno-condensed i');
+    if (seg) showTip(seg, NIGHTS[+seg.parentNode.dataset.night]);
+    else tip.hidden = true;
+  });
+  ov.addEventListener('mouseleave', function () { tip.hidden = true; timeTip.hidden = true; });
+
+  // Timeline hover tooltip (10396:21919): date and time under the cursor while it moves over the 3-day timeline segment.
+  // Uses the hypnogram-based time scale defined with the overview (figmaXToTime).
+  var timeTip = document.getElementById('time-tip'), daysBox = document.getElementById('days-box');
+  ov.addEventListener('mousemove', function (e) {
+    var b = daysBox.getBoundingClientRect(), o = ov.getBoundingClientRect();
+    // hidden outside the box, and while a sleep stage tooltip is showing (both sit above the timeline)
+    if (e.clientX < b.left || e.clientX > b.right || e.clientY < b.top || e.clientY > b.bottom || e.target.closest('.hypno-condensed i')) { timeTip.hidden = true; return; }
+    var t = new Date(Math.round(figmaXToTime(X0 + (e.clientX - o.left) / o.width * W) / 60000) * 60000);  // nearest minute
+    document.getElementById('time-tip-date').textContent = fmtDate(t);
+    document.getElementById('time-tip-hour').textContent = two(t.getUTCHours()) + ':' + two(t.getUTCMinutes());
+    timeTip.hidden = false;
+    var half = timeTip.offsetWidth / 2, x = e.clientX - o.left;
+    timeTip.style.left = Math.min(Math.max(x, b.left - o.left + half), b.right - o.left - half) + 'px';
+  });
+
+  // ---- Paging (Frame 5673): Play / Play backward, window duration selection ----
+  // One clock drives the signals, the seconds markers and their grid and the active window on the timeline.
+  // In Figma, "20s" shows 21.69s of trace (markers 85.39px apart on 1852px); every duration keeps that ratio.
+  var TRACK = 1852, RATIO = TRACK / 85.3916 / 20, LEAD = 5.69 / TRACK;  // LEAD: the first marker sits 5.69px in
+  var TILE = TRACK / 85.3916;                                            // seconds of signal in one trace image
+  var WINDOWS = [['1s', 1], ['2s', 2], ['3s', 3], ['4s', 4], ['5s', 5], ['10s', 10], ['20s', 20], ['30s', 30], ['1min', 60], ['10min', 600]];
+  var STEPS = [0.1, 0.2, 0.5, 1, 2, 5, 10, 15, 30, 60];                  // marker interval: the finest that keeps ≤ 22 markers
+  var winSec = 20, SPAN, STEP;
+  var T0 = Date.UTC(2026, 8, 28, 15, 6, 56);                              // first seconds marker (Figma)
+  var V0 = T0 - LEAD * 20 * RATIO * 1000, view = V0;                     // time at the left edge of the traces
+  var T_START = figmaXToTime(BOX_L), T_END = figmaXToTime(BOX_R);
+  var strips = Array.prototype.slice.call(document.querySelectorAll('#channels .strip'));
+  var flips = strips.map(function (el) { return el.parentNode.classList.contains('flip') ? -1 : 1; });
+  var tileOf = strips.map(function (el) { return el.parentNode.classList.contains('ecg-trace') ? TILE * 2217.34 / 1851 : TILE; });
+  var nTiles = [];
+  var secEl = document.getElementById('seconds'), gridEl = document.getElementById('grid'), awEl = document.getElementById('active-window');
+  // Hover cursor line, limited to the grid (right of the channel list, above the seconds markers)
+  (function () {
+    var sig = document.querySelector('.signals'), line = document.getElementById('cursor-line');
+    sig.addEventListener('mousemove', function (e) {
+      var g = gridEl.getBoundingClientRect(), sec = secEl.getBoundingClientRect(), r = sig.getBoundingClientRect();
+      var inside = e.clientX > g.left + 1 && e.clientX < g.right - 1 && e.clientY > g.top && e.clientY < sec.top;
+      line.hidden = !inside;
+      if (!inside) return;
+      line.style.left = (e.clientX - r.left + 1) + 'px';
+      line.style.top = (g.top - r.top + 1) + 'px';
+      line.style.height = (sec.top - g.top - 1) + 'px';
+    });
+    sig.addEventListener('mouseleave', function () { line.hidden = true; });
+  })();
+  function clampView(v) { return Math.min(Math.max(v, T_START), T_END - SPAN * 1000); }
+  function fmtSec(t) {
+    var d = new Date(t), str = two(d.getUTCHours()) + ':' + two(d.getUTCMinutes()) + ':' + two(d.getUTCSeconds());
+    return STEP < 1 ? str + '.' + Math.floor(d.getUTCMilliseconds() / 100) : str;
+  }
+  // Each trace is a strip of tiles (A, A mirrored, A, …) wide enough to cover the window at any scroll position
+  function layout() {
+    SPAN = winSec * RATIO;
+    STEP = STEPS.filter(function (st) { return SPAN / st <= 22; })[0] || 60;
+    strips.forEach(function (el, i) {
+      var n = Math.ceil(SPAN / tileOf[i]) + 2, src = el.dataset.src, h = '';
+      for (var k = 0; k < n; k++) h += '<img src="' + src + '" alt=""' + (k % 2 ? ' class="rev"' : '') + ' style="width:' + (100 / n).toFixed(5) + '%">';
+      el.innerHTML = h;
+      el.style.width = (n * tileOf[i] / SPAN * 100).toFixed(4) + '%';
+      nTiles[i] = n;
+    });
+  }
+  function render() {
+    var ds = (view - V0) / 1000;                                         // seconds travelled since the Figma state
+    strips.forEach(function (el, i) {
+      var off = ((ds / tileOf[i]) % 2 + 2) % 2;                          // position within the [A, A mirrored] period
+      var amp = 1 + 0.18 * Math.sin(2 * Math.PI * ds / (9 + 1.7 * i));  // slight amplitude drift
+      var dy = 1.5 * Math.sin(2 * Math.PI * ds / (6.5 + 1.3 * i) + i) - 1.5 * Math.sin(i);  // slight baseline drift, 0 in the Figma state
+      el.style.transform = 'translate(' + (-off / nTiles[i] * 100).toFixed(5) + '%,' + dy.toFixed(2) + 'px) scaleY(' + (amp * flips[i]).toFixed(4) + ')';
+    });
+    var stepMs = STEP * 1000, labels = '', lines = '', maxX = TRACK - (STEP < 1 ? 66 : 53);
+    var first = Math.ceil(view / stepMs) * stepMs;
+    for (var t = first - stepMs; ; t += stepMs) {
+      var x = (t - view) / 1000 / SPAN * TRACK;
+      if (x > TRACK) break;
+      for (var m = 0; m < 5; m++) {                                      // grid: the marker line + 4 subdivisions
+        var lx = x + m * STEP / SPAN * TRACK / 5;
+        if (lx >= 0 && lx <= TRACK) lines += '<i' + (m ? '' : ' class="major"') + ' style="left:' + (lx / TRACK * 100).toFixed(4) + '%"></i>';
+      }
+      if (x >= 0 && x <= maxX) labels += '<span style="left:' + (x / TRACK * 100).toFixed(4) + '%">' + fmtSec(t) + '</span>';
+    }
+    secEl.innerHTML = labels;
+    gridEl.innerHTML = lines;
+    awEl.style.left = pct(timeToFigmaX(view));
+    renderAnnots();
+    updateVideo();
+    updateMarker();
+    renderHighlights();
+  }
+  // Marker under the fully displayed hypnogram: the centre of the signal window on the open night's time axis
+  // (the hypnogram's stages fill its inner width, 4px in from each edge). Hidden when the window is outside that night.
+  var swMarker = document.getElementById('sw-marker');
+  function nightRange(n) { var l = NIGHTS[n]; return [stampMs(l[0][3]), stampMs(l[l.length - 1][4])]; }
+  function updateMarker() {
+    if (!swMarker || SPAN === undefined) return;
+    var f = -1;
+    if (active >= 0) { var r = nightRange(active); f = (view + SPAN * 500 - r[0]) / (r[1] - r[0]); }
+    swMarker.hidden = !(f >= 0 && f <= 1);
+    if (!swMarker.hidden) swMarker.style.left = 'calc(4px + (100% - 8px) * ' + f.toFixed(6) + ')';
+  }
+  // Clicking the fully displayed hypnogram centres the signal window on that moment of the night
+  full.addEventListener('click', function (e) {
+    if (active < 0) return;
+    var b = full.getBoundingClientRect(), r = nightRange(active);
+    var t = r[0] + Math.min(Math.max((e.clientX - b.left) / b.width, 0), 1) * (r[1] - r[0]);
+    view = clampView(Math.round(t / 1000) * 1000 - SPAN * 500);
+    render();
+  });
+  // Each click moves the view by one page: the duration chosen in the EEG parameters Selection
+  function page(d) { view = clampView(view + d * winSec * 1000); render(); }
+  document.getElementById('play-fwd').addEventListener('click', function () { page(1); });
+  document.getElementById('play-back').addEventListener('click', function () { page(-1); });
+  // Keyboard: ← / → page backward / forward by the same window length (not while typing in a field)
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+    if (e.target.closest && e.target.closest('input, textarea, select, [contenteditable="true"]')) return;
+    e.preventDefault();
+    page(e.key === 'ArrowRight' ? 1 : -1);
+  });
+
+  // EEG parameters Selection: window duration dropdown (opens upwards, above the bottom bar)
+  var winBtn = document.getElementById('window-select'), winMenu = document.getElementById('window-menu'), focusIdx = -1;
+  winMenu.innerHTML = WINDOWS.map(function (w, i) { return '<li role="option" data-i="' + i + '">' + w[0] + '</li>'; }).join('');
+  var items = Array.prototype.slice.call(winMenu.children);
+  function setFocus(i) { focusIdx = i; items.forEach(function (li, k) { li.classList.toggle('is-focus', k === i); }); }
+  function openMenu(open) {
+    winMenu.hidden = !open; winBtn.setAttribute('aria-expanded', open);
+    items.forEach(function (li) { li.setAttribute('aria-selected', WINDOWS[+li.dataset.i][1] === winSec); });
+    setFocus(open ? WINDOWS.map(function (w) { return w[1]; }).indexOf(winSec) : -1);
+  }
+  function choose(i, fromKey) {
+    winSec = WINDOWS[i][1];
+    document.getElementById('window-value').textContent = WINDOWS[i][0];
+    layout(); view = clampView(view); render();
+    openMenu(false); if (fromKey) winBtn.focus();
+  }
+  winBtn.addEventListener('click', function () { openMenu(winMenu.hidden); });
+  winMenu.addEventListener('click', function (e) { var li = e.target.closest('li'); if (li) choose(+li.dataset.i); });
+  winBtn.addEventListener('keydown', function (e) {
+    if (winMenu.hidden) { if (e.key === 'ArrowUp' || e.key === 'ArrowDown') { e.preventDefault(); openMenu(true); } return; }
+    if (e.key === 'ArrowDown') { e.preventDefault(); setFocus(Math.min(focusIdx + 1, items.length - 1)); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); setFocus(Math.max(focusIdx - 1, 0)); }
+    else if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); choose(focusIdx, true); }
+    else if (e.key === 'Escape') { openMenu(false); }
+  });
+  document.addEventListener('click', function (e) { if (!winMenu.hidden && !e.target.closest('.window-wrap')) openMenu(false); });
+
+  // Clicking the 3-day timeline segment moves the view (and the active window) to the time under the cursor,
+  // the same time the hover tooltip shows. Condensed hypnograms keep their own click (show/hide the full hypnogram).
+  function timelineHit(e) {
+    var b = daysBox.getBoundingClientRect();
+    if (e.clientX < b.left || e.clientX > b.right || e.clientY < b.top || e.clientY > b.bottom) return null;
+    if (e.target.closest('.hypno-condensed')) return null;
+    var o = ov.getBoundingClientRect();
+    return figmaXToTime(X0 + (e.clientX - o.left) / o.width * W);
+  }
+  ov.addEventListener('mousemove', function (e) { ov.style.cursor = timelineHit(e) === null ? '' : 'pointer'; });
+  ov.addEventListener('click', function (e) {
+    var t = timelineHit(e);
+    if (t === null) return;
+    view = clampView(Math.round(t / 1000) * 1000 - LEAD * SPAN * 1000);  // first seconds marker = clicked time
+    render();
+  });
+  // ---- Classic annotation (Figma "global interactions") ----
+  // Double-click on the grid: one edge of a light-blue selection is pinned there, the other follows the cursor.
+  // A single click then freezes it and opens the annotation menu on the side with room. Choosing an item (or typing a
+  // free text and pressing Enter) places a long annotation over that span, plus a stroke on the bottom timeline at its start.
+  // Double-clicking an annotation reopens the menu to re-edit it, with Delete in place of Mesure.
+  var LEVEL1 = [['Crise', true], ['Rythmes rapides'], ['Ondes lentes', true], ['Endormissement'], ['Réveil'], ['Artefact']];
+  var LEVEL2 = ['Focale', 'Focale secondairement généralisée', 'Généralisée', 'Début inconnu', 'Pointes rapides', 'Pointes lentes', 'Polypointes', 'Polypointes-ondes'];
+  var annots = [], sel = null, mode = 'idle', editing = null, chan = '', l2Parent = null, commentFor = null;
+  var annotsEl = document.getElementById('annots'), selEl = document.getElementById('annot-sel');
+  var sigEl = document.querySelector('.signals'), menu = document.getElementById('amenu');
+  var l1 = menu.querySelector('.am-l1'), l2 = menu.querySelector('.am-l2'), cBox = menu.querySelector('.am-comment');
+  var cInput = cBox.querySelector('input'), foot = menu.querySelector('.am-foot');
+  function itemHtml(label, arrow) {
+    return '<div class="am-item" data-label="' + label + '"' + (arrow ? ' data-sub="1"' : '') + '><span>' + label + '</span>' +
+      (arrow ? '<img src="assets/annot-arrow.svg" alt="">' : '') + '</div>';
+  }
+  menu.querySelector('.am-l1 .am-list').innerHTML = LEVEL1.map(function (i) { return itemHtml(i[0], i[1]); }).join('');
+  l2.querySelector('.am-list').innerHTML = LEVEL2.map(function (l) { return itemHtml(l); }).join('');
+
+  function timeAt(x) { var r = annotsEl.getBoundingClientRect(); return view + (x - r.left) / r.width * SPAN * 1000; }
+  function leftOf(t) { return ((t - view) / 1000 / SPAN * 100).toFixed(4) + '%'; }
+  function inGrid(e) {
+    var g = gridEl.getBoundingClientRect(), sec = secEl.getBoundingClientRect();
+    return e.clientX > g.left + 1 && e.clientX < g.right - 1 && e.clientY > g.top && e.clientY < sec.top;
+  }
+  function clampX(x) { var g = gridEl.getBoundingClientRect(); return Math.min(Math.max(x, g.left + 1), g.right - 1); }
+  function span(a) { return [Math.min(a.a, a.b), Math.max(a.a, a.b)]; }
+  function channelAt(y) {
+    var rows = sigEl.querySelectorAll('.ch, .ecg-row'), best = '', d = Infinity;
+    rows.forEach(function (r) {
+      var b = r.getBoundingClientRect(), dd = Math.abs((b.top + b.bottom) / 2 - y);
+      var l = r.querySelector('.ch-label');
+      if (l && dd < d) { d = dd; best = l.textContent; }
+    });
+    return best;
+  }
+  function esc(s) { return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/"/g, '&quot;'); }
+
+  function renderAnnots() {
+    if (!annotsEl) return;
+    var h = '';
+    annots.forEach(function (a, i) {
+      var s = span(a), w = ((s[1] - s[0]) / 1000 / SPAN * 100).toFixed(4) + '%';
+      h += '<div class="annot-area" style="left:' + leftOf(s[0]) + ';width:' + w + '"></div>' +
+           '<div class="annot-label" data-i="' + i + '" style="left:' + leftOf(s[0]) + '"' + (a.comment ? ' title="' + esc(a.comment) + '"' : '') +
+           '><span>' + esc(a.label) + '</span></div>';
+    });
+    annotsEl.querySelectorAll('.annot-area, .annot-label').forEach(function (el) { el.remove(); });
+    annotsEl.insertAdjacentHTML('beforeend', h);
+    if (sel) {
+      var s = span(sel);
+      selEl.style.left = leftOf(s[0]);
+      selEl.style.width = ((s[1] - s[0]) / 1000 / SPAN * 100).toFixed(4) + '%';
+    }
+    selEl.hidden = !sel;
+    ov.querySelectorAll('.annot-stroke').forEach(function (el) { el.remove(); });
+    ov.insertAdjacentHTML('beforeend', annots.map(function (a) {
+      return '<img class="annot-stroke" src="assets/annot-stroke.svg" alt="" style="left:' + pct(timeToFigmaX(span(a)[0])) + '">';
+    }).join(''));
+  }
+
+  // ---- Menu ----
+  // Panels never leave the browser window: Level 1 sits right of the selection when Level 1 + Level 2 fit there;
+  // otherwise (selection close to the right edge) it opens next to the validating click, over the blue selection.
+  // Level 2 and the comment field each open on the side with room when they appear.
+  var EDGE = 8, GAP = 10, W1 = 177, W2 = 273, WC = 195;
+  function placeMenu(xLeft, xRight, y, clickX) {
+    var vw = window.innerWidth, x;
+    if (xRight + GAP + W1 + GAP + W2 <= vw - EDGE) x = xRight + GAP;               // right of the selection
+    else x = Math.min(clickX + GAP, vw - EDGE - W1);                               // by the click, over the selection
+    menu.style.left = Math.max(EDGE, x) + 'px';
+    menu.hidden = false;
+    var hgt = Math.max(menu.offsetHeight, 360);
+    menu.style.top = Math.max(EDGE, Math.min(y, window.innerHeight - hgt - EDGE)) + 'px';
+  }
+  function placeL2() {
+    var vw = window.innerWidth, m = menu.getBoundingClientRect(), x;
+    if (m.right + GAP + W2 <= vw - EDGE) x = W1 + GAP;
+    else if (m.left - GAP - W2 >= EDGE) x = -GAP - W2;
+    else x = vw - EDGE - W2 - m.left;
+    l2.style.left = x + 'px';
+    l2.style.top = l1.querySelector('.am-card:not(.am-foot)').offsetTop + 'px';   // level with the Level 1 list
+  }
+  function placeComment(it) {
+    var vw = window.innerWidth, m = menu.getBoundingClientRect(), r = it.getBoundingClientRect();
+    var lefts = [l1.getBoundingClientRect().left, l1.getBoundingClientRect().right];
+    if (!l2.hidden) { var b = l2.getBoundingClientRect(); lefts.push(b.left, b.right); }
+    var minL = Math.min.apply(null, lefts), maxR = Math.max.apply(null, lefts), x;
+    // Outside the open panels, on the side of the hovered column, so it never covers a menu; flips when there is no room
+    var right = maxR + GAP + WC <= vw - EDGE ? maxR + GAP : null, left = minL - GAP - WC >= EDGE ? minL - GAP - WC : null;
+    var l2Left = !l2.hidden && b.left < l1.getBoundingClientRect().left;   // Level 2 flipped left: keep the field on that side
+    x = l2Left ? (left !== null ? left : right) : (right !== null ? right : left);
+    if (x === null) x = vw - EDGE - WC;
+    cBox.style.left = (x - m.left) + 'px';
+    cBox.style.top = (r.top - m.top - 9) + 'px';
+  }
+  function resetMenu() {
+    l2.hidden = true; cBox.hidden = true; l2Parent = null; commentFor = null; cInput.value = '';
+    menu.querySelectorAll('.am-item.is-open').forEach(function (el) { el.classList.remove('is-open'); });
+    menu.querySelectorAll('.am-free .am-input').forEach(function (el) { el.value = ''; });
+  }
+  function openAnnotMenu(edit, xLeft, xRight, y, clickX) {
+    editing = edit;
+    mode = 'menu';
+    resetMenu();
+    foot.classList.toggle('is-delete', edit !== null);
+    foot.classList.toggle('is-measure', edit === null);
+    foot.innerHTML = edit !== null
+      ? '<div class="am-btn"><img src="assets/annot-delete.svg" alt=""><span>Delete</span></div>'
+      : '<div class="am-btn"><img src="assets/annot-measure.svg" alt=""><span>Mesure</span><span class="am-chan">' + esc(chan) + '</span></div>';
+    if (edit === null) l1.insertBefore(foot, l1.firstChild); else l1.appendChild(foot);   // Measure above the list, Delete below
+    placeMenu(xLeft, xRight, y, clickX === undefined ? xRight : clickX);
+  }
+  function closeMenu() {
+    menu.hidden = true; mode = 'idle'; editing = null;
+    if (sel) { sel = null; renderAnnots(); }
+  }
+  function commit(label) {
+    label = label.trim();
+    if (!label) return;
+    var comment = commentFor && cInput.value.trim() ? cInput.value.trim() : '';
+    if (editing !== null) { annots[editing].label = label; annots[editing].comment = comment; }
+    else if (sel) annots.push({ a: sel.a, b: sel.b, label: label, comment: comment });
+    sel = null;
+    menu.hidden = true; mode = 'idle'; editing = null;
+    renderAnnots();
+  }
+  function fullLabel(el) {
+    var l = el.dataset.label;
+    return el.closest('.am-l2') && l2Parent ? l2Parent + ' · ' + l : l;
+  }
+  // Hover: items with an arrow open Level 2; the others show "Commentaire optionnel" beside them, aligned with the row
+  menu.addEventListener('mouseover', function (e) {
+    var it = e.target.closest('.am-item');
+    if (!it) return;
+    var inL1 = !!it.closest('.am-l1');
+    if (inL1) {
+      l1.querySelectorAll('.am-item.is-open').forEach(function (el) { if (el !== it) el.classList.remove('is-open'); });
+      if (it.dataset.sub) {
+        it.classList.add('is-open');
+        if (l2Parent !== it.dataset.label) { l2Parent = it.dataset.label; cBox.hidden = true; commentFor = null; }
+        l2.hidden = false;
+        placeL2();
+        return;
+      }
+      l2.hidden = true; l2Parent = null;
+    }
+    if (commentFor !== it) { commentFor = it; cInput.value = ''; }
+    cBox.hidden = false;
+    placeComment(it);
+  });
+  menu.addEventListener('click', function (e) {
+    var it = e.target.closest('.am-item');
+    if (it) { commit(fullLabel(it)); return; }  // any item validates, including Level 1 items that open a Level 2 on hover
+    if (e.target.closest('.am-foot') && editing !== null) {
+      annots.splice(editing, 1);
+      menu.hidden = true; mode = 'idle'; editing = null; renderAnnots();
+    }
+  });
+  menu.addEventListener('keydown', function (e) {
+    if (e.key !== 'Enter') return;
+    var inp = e.target.closest('.am-input');
+    if (!inp) return;
+    e.preventDefault();
+    if (inp === cInput) { if (commentFor) commit(fullLabel(commentFor)); return; }
+    var text = inp.value.trim();
+    if (!text) return;
+    commentFor = null;
+    commit(inp.closest('.am-l2') && l2Parent ? l2Parent + ' · ' + text : text);
+  });
+
+  // Bottom timeline: one pixel there is minutes of signal, so clicking an annotation's stroke (±5px) goes exactly to
+  // that annotation: centred in the signal window, or starting at the window's first second marker if it is longer.
+  function strokeAt(e) {
+    var best = -1, d = 6;
+    ov.querySelectorAll('.annot-stroke').forEach(function (el, i) {
+      var r = el.getBoundingClientRect(), dd = Math.abs(e.clientX - (r.left + r.width / 2));
+      if (dd < d && e.clientY >= r.top - 4 && e.clientY <= r.bottom + 4) { d = dd; best = i; }
+    });
+    return best;
+  }
+  ov.addEventListener('click', function (e) {
+    var i = strokeAt(e);
+    if (i < 0) return;
+    e.stopImmediatePropagation();
+    var s = span(annots[i]), len = s[1] - s[0];
+    view = clampView(len < SPAN * 1000 * (1 - 2 * LEAD) ? s[0] + len / 2 - SPAN * 500 : s[0] - LEAD * SPAN * 1000);
+    render();
+  }, true);
+  // Hovering a stroke shows its annotation's tooltip in place of the date/time one; hovering a finished video highlight's
+  // cut (±5px, it can be a few pixels wide at this scale) shows its title the same way, in the highlight's dark blue
+  var annotTip = document.getElementById('annot-tip');
+  function hlCutAt(e) {
+    var hit = null, d = Infinity;
+    ov.querySelectorAll('.hl-cut[data-n]').forEach(function (el) {
+      var r = el.getBoundingClientRect(), c = (r.left + r.right) / 2, dd = Math.abs(e.clientX - c);
+      if (e.clientX >= r.left - 5 && e.clientX <= r.right + 5 && e.clientY >= r.top - 4 && e.clientY <= r.bottom + 4 && dd < d) { d = dd; hit = el; }
+    });
+    return hit;
+  }
+  ov.addEventListener('mousemove', function (e) {
+    var i = strokeAt(e), el = null, label, color;
+    if (i >= 0) { el = ov.querySelectorAll('.annot-stroke')[i]; label = annots[i].label; color = annots[i].color || '#fe3b48'; ov.style.cursor = 'pointer'; }
+    else { el = hlCutAt(e); if (el) { label = hlName(highlights[el.dataset.n - 1]); color = '#1b1d3a'; } }
+    if (!el) { annotTip.hidden = true; tl.classList.remove('tip-below'); return; }
+    annotTip.classList.toggle('is-below', !!el.dataset.n);
+    tl.classList.toggle('tip-below', !!el.dataset.n);
+    timeTip.hidden = true;
+    var r = el.getBoundingClientRect(), o = ov.getBoundingClientRect();
+    annotTip.firstChild.textContent = label;
+    annotTip.style.setProperty('--annot-color', color);
+    annotTip.hidden = false;
+    var half = annotTip.offsetWidth / 2, x = r.left + r.width / 2 - o.left;
+    annotTip.style.left = Math.min(Math.max(x, half), o.width - half) + 'px';
+  });
+  ov.addEventListener('mouseleave', function () { annotTip.hidden = true; tl.classList.remove('tip-below'); });
+
+  // ---- Drawing ----
+  sigEl.addEventListener('dblclick', function (e) {
+    if (hlOn || mode !== 'idle' || !inGrid(e)) return;
+    if (htFor) closeTitle(true);
+    var t = timeAt(e.clientX);
+    for (var i = annots.length - 1; i >= 0; i--) {
+      var s = span(annots[i]);
+      if (t >= s[0] && t <= s[1]) { editAnnot(i); return; }
+    }
+    chan = channelAt(e.clientY);
+    sel = { a: t, b: t };
+    mode = 'drawing';
+    renderAnnots();
+  });
+  annotsEl.addEventListener('dblclick', function (e) {
+    var l = e.target.closest('.annot-label');
+    if (l && mode === 'idle') editAnnot(+l.dataset.i);
+  });
+  // A single click on a placed annotation — its area in the signal view or its red title tab — opens its menu
+  // (Annotation Re-editing - Level 1, 10648:38534: the types, "Champs libre..." and Delete), like a click on a video
+  // highlight. In Highlight mode clicks in the grid draw highlights instead; a video highlight on top takes the click.
+  sigEl.addEventListener('click', function (e) {
+    if (mode !== 'idle' || hlOn || !inGrid(e) || e.detail > 1) return;
+    var t = timeAt(e.clientX);
+    for (var i = annots.length - 1; i >= 0; i--) {
+      var s = span(annots[i]);
+      if (t >= s[0] && t <= s[1]) { e.stopPropagation(); editAnnot(i, e.clientX); return; }
+    }
+  });
+  annotsEl.addEventListener('click', function (e) {
+    var l = e.target.closest('.annot-label');
+    if (!l || mode !== 'idle' || e.detail > 1) return;
+    e.stopPropagation();
+    editAnnot(+l.dataset.i, e.clientX);
+  });
+  // Edit menus (classic annotation and video highlight) open right of the item's title tab, top-aligned with it (left of
+  // the tab when there is no room). Returns false when the tab is scrolled out of the signal view.
+  function placeByTab(el, tab, w) {
+    if (!tab) return false;
+    var t = tab.getBoundingClientRect(), r = annotsEl.getBoundingClientRect();
+    if (t.right <= r.left || t.left >= r.right) return false;
+    var left = t.right + 8 + w <= window.innerWidth - EDGE ? t.right + 8 : t.left - 8 - w;
+    el.style.left = Math.max(EDGE, left) + 'px';
+    el.style.top = Math.max(EDGE, Math.min(t.top, window.innerHeight - el.offsetHeight - EDGE)) + 'px';
+    return true;
+  }
+  function editAnnot(i, clickX) {
+    var s = span(annots[i]), r = annotsEl.getBoundingClientRect();
+    var xl = r.left + (s[0] - view) / 1000 / SPAN * r.width, xr = r.left + (s[1] - view) / 1000 / SPAN * r.width;
+    openAnnotMenu(i, Math.max(xl, r.left), Math.min(xr, r.right), r.top + 40, clickX);
+    placeByTab(menu, annotsEl.querySelector('.annot-label[data-i="' + i + '"]'), W1);
+  }
+  document.addEventListener('mousemove', function (e) {
+    if (mode !== 'drawing') return;
+    sel.b = timeAt(clampX(e.clientX));
+    renderAnnots();
+  });
+  document.addEventListener('click', function (e) {
+    if (mode === 'drawing') {
+      if (e.detail > 1) return;  // the clicks of the double-click itself
+      var r = annotsEl.getBoundingClientRect();
+      if (Math.abs(sel.b - sel.a) / 1000 / SPAN * r.width < 3) return;  // the cursor has not moved from the first edge yet
+      var s = span(sel);
+      openAnnotMenu(null, r.left + (s[0] - view) / 1000 / SPAN * r.width, r.left + (s[1] - view) / 1000 / SPAN * r.width, e.clientY, e.clientX);
+      e.stopPropagation();
+      return;
+    }
+    if (mode === 'menu' && !menu.contains(e.target)) closeMenu();
+  }, true);
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape') return;
+    if (mode === 'drawing') { sel = null; mode = 'idle'; renderAnnots(); }
+    else if (mode === 'menu') closeMenu();
+  });
+
+  // ---- Video (Figma "Video behaviour") ----
+  // The recording's video is one clip looped over the whole 3 days: the frame for any moment is (time since the start of the
+  // recording) modulo the clip length, so a video is available wherever the user goes. The video marker sits at a fraction
+  // of the signal window (vf); the frame shown is the one at the marker's time. Dragging the marker scrubs the video;
+  // a click on it (or V) shows / hides the preview. While playing, the marker advances and pages the signals when it
+  // reaches the right edge.
+  var vMarker = document.querySelector('.video-marker'), vPrev = document.getElementById('vprev'), vid = document.getElementById('vprev-video');
+  var vf = 0.5618, vPlaying = false, vAuto = false, vLast = 0, vPlaced = false;
+  function vDur() { return vid.duration && isFinite(vid.duration) ? vid.duration : 212.6; }
+  function vMarkerTime() { return view + vf * SPAN * 1000; }
+  function vClipTime() { var d = vDur(), s = (vMarkerTime() - T_START) / 1000; return ((s % d) + d) % d; }
+  function vSeek() {
+    if (vPrev.hidden || vid.readyState < 1) return;
+    var t = vClipTime();
+    if (Math.abs(vid.currentTime - t) > 0.08) vid.currentTime = t;
+  }
+  function updateVideo() {  // called from render()
+    if (!vMarker || SPAN === undefined) return;
+    vMarker.style.left = (vf * 100).toFixed(4) + '%';
+    if (!vAuto) vSeek();
+  }
+  vid.muted = true; vid.volume = 0;  // the video is always silent
+  // Marker state: 'unselected' (available, preview closed), 'active' (preview open), 'disabled' (no video: the file
+  // fails to load, or ?video=off in the address to preview this state)
+  var vAvailable = !/[?&]video=off\b/.test(location.search);
+  function setMarkerState() {
+    var st = !vAvailable ? 'disabled' : vPrev.hidden ? 'unselected' : 'active';
+    ['unselected', 'active', 'disabled'].forEach(function (k) { vMarker.classList.toggle('is-' + k, k === st); });
+    vMarker.querySelector('.line').src = 'assets/' + (st === 'disabled' ? 'video-line-disabled-2px.svg' : 'video-line-2px.svg');
+    vMarker.querySelector('.cam img').src = 'assets/' + { unselected: 'video-camera-unselected.svg', active: 'video-camera.svg', disabled: 'video-camera-disabled.svg' }[st];
+    vMarker.dataset.st = st;   // its tooltip says when the video is unavailable
+    vMarker.setAttribute('aria-disabled', st === 'disabled' ? 'true' : 'false');
+  }
+  vid.addEventListener('error', function () { vAvailable = false; showPreview(false); setMarkerState(); });
+  if (!vAvailable) vid.removeAttribute('src');
+  vid.addEventListener('loadedmetadata', vSeek);
+
+  function showPreview(on) {
+    if (on && !vAvailable) return;
+    if (on) {
+      vPrev.hidden = false;
+      if (!vPlaced) {  // first time: top-right corner of the signal view
+        var g = gridEl.getBoundingClientRect();
+        vPrev.style.left = (g.right - 250 - 16) + 'px';
+        vPrev.style.top = (g.top + 16) + 'px';
+        vPlaced = true;
+      }
+      if (vid.readyState < 1) vid.load();
+      vSeek();
+    } else {
+      if (vPlaying) setPlaying(false);
+      if (document.fullscreenElement === vPrev) document.exitFullscreen();
+      vPrev.hidden = true;
+    }
+    setMarkerState();
+  }
+  function setPlaying(on) {
+    vPlaying = on;
+    vPrev.classList.toggle('is-playing', on);
+    document.getElementById('vp-play').setAttribute('aria-label', on ? 'Pause' : 'Lecture');
+    if (on) { vSeek(); vid.play().catch(function () { setPlaying(false); }); vLast = performance.now(); requestAnimationFrame(vTick); }
+    else vid.pause();
+  }
+  function vTick(now) {
+    if (!vPlaying) return;
+    var dt = (now - vLast) * (vid.playbackRate || 1); vLast = now;
+    vf += dt / (SPAN * 1000);
+    if (vf > 1) {  // the marker reached the right edge: next page, the marker carries on from the same moment
+      var old = view;
+      vAuto = true; view = clampView(view + winSec * 1000); vf -= (view - old) / (SPAN * 1000); render(); vAuto = false;
+      if (view === old) { vf = 1; setPlaying(false); }
+    }
+    vAuto = true; updateVideo(); vAuto = false;
+    requestAnimationFrame(vTick);
+  }
+
+  // Marker: drag scrubs, click toggles the preview
+  (function () {
+    var down = null;
+    vMarker.addEventListener('pointerdown', function (e) {
+      if (e.button !== 0 || !vAvailable) return;
+      down = { x: e.clientX, moved: false };
+      vMarker.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+    vMarker.addEventListener('pointermove', function (e) {
+      if (!down) return;
+      if (Math.abs(e.clientX - down.x) > 3) down.moved = true;
+      if (!down.moved) return;
+      var r = annotsEl.getBoundingClientRect();
+      vf = Math.min(Math.max((e.clientX - r.left) / r.width, 0), 1);
+      updateVideo();
+    });
+    vMarker.addEventListener('pointerup', function () {
+      if (down && !down.moved) showPreview(vPrev.hidden);
+      down = null;
+    });
+    vMarker.addEventListener('dblclick', function (e) { e.stopPropagation(); });
+  })();
+
+  // Preview: dragged from anywhere except its icons; resized from its corners (video proportions kept, opposite corner
+  // fixed); always kept inside the browser window
+  (function () {
+    var drag = null, RATIO_V = 250 / 156, MIN_W = 160;
+    vPrev.addEventListener('pointerdown', function (e) {
+      if (e.button !== 0 || e.target.closest('.vp-btn') || document.fullscreenElement === vPrev) return;
+      var r = vPrev.getBoundingClientRect(), h = e.target.closest('.vp-rs');
+      if (h) {
+        var c = h.dataset.c;
+        drag = { resize: true, west: c[1] === 'w', north: c[0] === 'n',
+                 ax: c[1] === 'w' ? r.right : r.left, ay: c[0] === 'n' ? r.bottom : r.top,   // anchor: the opposite corner
+                 x0: e.clientX, y0: e.clientY, w0: r.width };
+      } else drag = { dx: e.clientX - r.left, dy: e.clientY - r.top };
+      vPrev.setPointerCapture(e.pointerId);
+      e.preventDefault();
+    });
+    vPrev.addEventListener('pointermove', function (e) {
+      if (!drag) return;
+      if (drag.resize) {
+        var vw = window.innerWidth, vh = window.innerHeight;
+        // outward movement of the grabbed corner; the larger of the two axes drives the size, so a purely horizontal
+        // or vertical drag both grow and shrink the box
+        var ox = (drag.west ? -1 : 1) * (e.clientX - drag.x0), oy = (drag.north ? -1 : 1) * (e.clientY - drag.y0) * RATIO_V;
+        var w = drag.w0 + (Math.abs(ox) >= Math.abs(oy) ? ox : oy);
+        var maxW = Math.min(drag.west ? drag.ax : vw - drag.ax, (drag.north ? drag.ay : vh - drag.ay) * RATIO_V);
+        w = Math.max(MIN_W, Math.min(w, maxW));
+        var hgt = w / RATIO_V;
+        vPrev.style.width = w + 'px'; vPrev.style.height = hgt + 'px';
+        vPrev.style.left = (drag.west ? drag.ax - w : drag.ax) + 'px';
+        vPrev.style.top = (drag.north ? drag.ay - hgt : drag.ay) + 'px';
+        return;
+      }
+      var x = Math.min(Math.max(e.clientX - drag.dx, 0), window.innerWidth - vPrev.offsetWidth);
+      var y = Math.min(Math.max(e.clientY - drag.dy, 0), window.innerHeight - vPrev.offsetHeight);
+      vPrev.style.left = x + 'px'; vPrev.style.top = y + 'px';
+    });
+    vPrev.addEventListener('pointerup', function () { drag = null; });
+    vPrev.addEventListener('dblclick', function (e) { e.stopPropagation(); });
+  })();
+  document.getElementById('vp-close').addEventListener('click', function () { showPreview(false); });
+  document.getElementById('vp-play').addEventListener('click', function () { setPlaying(!vPlaying); });
+  document.getElementById('vp-full').addEventListener('click', function () {
+    if (document.fullscreenElement === vPrev) document.exitFullscreen(); else vPrev.requestFullscreen();
+  });
+  window.addEventListener('resize', function () {  // keep the preview on screen when the window shrinks
+    if (vPrev.hidden || document.fullscreenElement) return;
+    var r = vPrev.getBoundingClientRect();
+    vPrev.style.left = Math.min(Math.max(r.left, 0), window.innerWidth - r.width) + 'px';
+    vPrev.style.top = Math.min(Math.max(r.top, 0), window.innerHeight - r.height) + 'px';
+  });
+  // V shows / hides the preview (not while typing in a field)
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'v' && e.key !== 'V') return;
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.target.closest && e.target.closest('input, textarea, select, [contenteditable="true"]')) return;
+    e.preventDefault();
+    showPreview(vPrev.hidden);
+  });
+
+  // ---- Video Highlight mode (variant: the timeline ends a highlight instead of navigating, see below) ----
+  // On with the Highlight button or D (AZERTY: D = début, F = fin; not while typing in a field). Turning it on opens the
+  // video preview (marker active). Start and end are chosen by the user, independently of the video marker: a single
+  // click in the signal grid, or D / F with the cursor over the grid, at the time under the cursor (D elsewhere only
+  // turns the mode on). While a highlight runs the cut stretches from its start to the time under the cursor (the last
+  // one hovered when the cursor is outside the grid), on the Signal view and on the timeline, as the user pages with
+  // ← / → or clicks the timeline. The end places a "Video highlight N" annotation. The Highlight button turns the mode
+  // off (a highlight in progress is dropped).
+  var hlBtn = document.getElementById('hl-btn'), hlCur = document.getElementById('hl-cursor');
+  var hlOn = false, hlStart = null, highlights = [], hlHover = -1, hlMouse = null, hlNow = null;
+  // time under the cursor when it is over the grid (follows paging), otherwise the last one hovered
+  function hlCursorTime() {
+    if (hlMouse && hlMouse.inside) hlNow = timeAt(hlMouse.x);
+    return hlNow === null ? hlStart : hlNow;
+  }
+  function hlSetCursorTip() {
+    hlCur.classList.toggle('is-end', hlStart !== null);
+    hlCur.innerHTML = hlStart === null ? '<kbd>D</kbd><span>Start highlight</span>' : '<kbd>F</kbd><span>End highlight</span>';
+    hlPlaceTip();
+  }
+  function hlPlaceTip() {
+    if (!document.getElementById('pp-back').hidden || !document.getElementById('hl-title').hidden) { hlCur.hidden = true; return; }
+    var show = hlOn && hlMouse && !hlMouse.out;   // variant: the cursor tooltip follows the cursor anywhere in the page
+    hlCur.hidden = !show;
+    if (!show) return;
+    var x = Math.min(hlMouse.x + 12, window.innerWidth - hlCur.offsetWidth - 4);
+    var y = Math.min(hlMouse.y + 20, window.innerHeight - hlCur.offsetHeight - 4);
+    hlCur.style.left = x + 'px'; hlCur.style.top = y + 'px';
+  }
+  function setHighlightMode(on) {
+    if (on && !vAvailable) return;
+    hlOn = on;
+    if (!on) { hlStart = null; hlHover = -1; if (htFor) closeTitle(true); }
+    hlBtn.classList.toggle('is-active', on);
+    hlBtn.setAttribute('aria-checked', on ? 'true' : 'false');
+    sigEl.classList.toggle('hl-mode', on);
+    tl.classList.toggle('hl-mode', on);
+    if (on) showPreview(true);
+    hlSetCursorTip();
+    renderHighlights();
+  }
+  function hlBegin(t) { hlStart = t; hlNow = t; hlSetCursorTip(); renderHighlights(); }
+  function hlEnd(t, endX) {
+    if (hlStart === null) return;
+    var a = Math.min(hlStart, t), b = Math.max(hlStart, t);
+    if (b - a < 100) b = a + 100;                        // a click on the start itself still leaves a visible highlight
+    // A highlight lying entirely inside another is merged into the larger one: a new highlight swallows the ones it
+    // covers, and one drawn inside an existing highlight adds nothing. Titles are then renumbered 1, 2, … in time order.
+    var inside = highlights.some(function (x) { return x.a <= a && x.b >= b; });
+    var made = null;
+    if (!inside) {
+      highlights = highlights.filter(function (x) { return !(x.a >= a && x.b <= b); });
+      made = { a: a, b: b, title: '' };
+      highlights.push(made);
+    }
+    highlights.sort(function (x, y) { return x.a - y.a; });
+    highlights.forEach(function (x, i) { x.n = i + 1; });
+    hlHover = -1;
+    hlStart = null; hlSetCursorTip(); renderHighlights();
+    if (made) openTitle(made, endX, false);
+  }
+  function renderHighlights() {
+    if (!annotsEl || SPAN === undefined) return;
+    var h = '', shown = hlOn ? highlights : [];   // video highlights only show while Highlight mode is on
+    shown.forEach(function (x, i) {
+      var w = ((x.b - x.a) / 1000 / SPAN * 100).toFixed(4) + '%';
+      h += '<div class="hl-area' + (i === hlHover ? ' is-hover' : '') + '" style="left:' + leftOf(x.a) + ';width:' + w + '"></div>' +
+           '<div class="hl-label" data-i="' + i + '" style="left:' + leftOf(x.a) + '"><span>' + esc(hlName(x)) + '</span></div>';
+    });
+    if (hlStart !== null) {
+      var now = hlCursorTime(), a = Math.min(hlStart, now), b = Math.max(hlStart, now);
+      h += '<div class="hl-live" style="left:' + leftOf(a) + ';width:' + ((b - a) / 1000 / SPAN * 100).toFixed(4) + '%"></div>';
+    }
+    annotsEl.querySelectorAll('.hl-area, .hl-label, .hl-live').forEach(function (el) { el.remove(); });
+    annotsEl.insertAdjacentHTML('beforeend', h);
+    // Timeline: the cut in progress, and each finished highlight
+    var cuts = shown.map(function (x) { return [x.a, x.b, x.n]; });
+    if (hlStart !== null) { var n2 = hlCursorTime(); cuts.push([Math.min(hlStart, n2), Math.max(hlStart, n2)]); }
+    ov.querySelectorAll('.hl-cut').forEach(function (el) { el.remove(); });
+    ov.insertAdjacentHTML('beforeend', cuts.map(function (c) {
+      var l = timeToFigmaX(c[0]), r = timeToFigmaX(c[1]);
+      return '<div class="hl-cut"' + (c[2] ? ' data-n="' + c[2] + '"' : '') + ' style="left:' + pct(l) + ';width:max(' + ((r - l) / W * 100).toFixed(4) + '%, 2px)"><i class="a"></i><i class="b"></i></div>';
+    }).join(''));
+  }
+  hlBtn.addEventListener('click', function () { setHighlightMode(!hlOn); });
+  // Video timeline strip: same span as the 3-day box, a separator at each midnight; returns the time under the cursor
+  var hlStrip = document.getElementById('hl-strip');
+  hlStrip.innerHTML = [1, 2, 3].map(function (d) {
+    var x = timeToFigmaX(Date.UTC(2026, 8, 27 + d));
+    return x > BOX_L && x < BOX_R ? '<i style="left:calc((100% + 2px) * ' + ((x - BOX_L) / (BOX_R - BOX_L)).toFixed(6) + ' - 1px)"></i>' : '';
+  }).join('');
+  function stripHit(e) {
+    if (!hlOn) return null;
+    var b = hlStrip.getBoundingClientRect();
+    if (!b.width || e.clientX < b.left || e.clientX > b.right || e.clientY < b.top || e.clientY > b.bottom) return null;
+    var o = ov.getBoundingClientRect();
+    return figmaXToTime(X0 + (e.clientX - o.left) / o.width * W);
+  }
+  // In Highlight mode the Video timeline strip is where highlights are drawn on the timeline: a click (or D / F) in it
+  // starts a highlight, then ends it, at the time under the cursor, just like in the signal grid; hovering it while a
+  // highlight runs shows where it would end. The 3-day box below keeps navigating.
+  tl.addEventListener('click', function (e) {
+    var cutEl = hlStart === null ? hlCutAt(e) : null;
+    if (cutEl) { e.stopPropagation(); e.preventDefault(); openTitle(highlights[cutEl.dataset.n - 1], e.clientX, true); return; }
+    if (!hlOn) return;
+    var t = stripHit(e);
+    if (t === null) return;
+    e.stopPropagation(); e.preventDefault();
+    if (hlStart === null) { if (HL_TWO_CLICKS) hlBegin(t); } else hlEnd(t, e.clientX);  // two-click start: inactive (see HL_TWO_CLICKS)
+  }, true);
+  ov.addEventListener('mousemove', function (e) {
+    if (!hlOn) return;
+    var t = stripHit(e);
+    if (t !== null) ov.style.cursor = 'pointer';
+    if (t !== null && hlStart !== null) {
+      hlMouse = { x: e.clientX, y: e.clientY, inside: false, overTl: true, tlT: t };  // before rendering, so the last grid position isn't reused
+      hlNow = t; renderHighlights();
+    }
+  });
+  document.documentElement.addEventListener('mouseleave', function () { if (hlMouse) { hlMouse.out = true; hlPlaceTip(); } });
+  // Click + drag draws a highlight, in the signal view or in the Video timeline strip: pressing sets its start, the cut
+  // follows the cursor (it can go from one to the other, and ← / → still page), releasing sets its end and opens its
+  // menu. A press that does not move is a plain click (on a highlight it opens its menu).
+  var hlDrag = null, hlDragSwallow = false;
+  // Former interaction, kept inactive: a click starts a highlight and the next click ends it. true (or ?clicks=on) restores it.
+  var HL_TWO_CLICKS = /[?&]clicks=on\b/.test(location.search) || false;
+  document.addEventListener('pointerdown', function (e) {
+    hlDragSwallow = false;
+    if (!hlOn || hlStart !== null || e.button !== 0 || htFor) return;
+    if (e.target.closest && e.target.closest('.video-marker, .vprev, .amenu, .hl-label, .annot-label, .pp-back')) return;
+    var t = inGrid(e) ? timeAt(e.clientX) : stripHit(e);
+    if (t === null) return;
+    hlDrag = { x0: e.clientX, t0: t, on: false };
+    e.preventDefault();
+  }, true);
+  document.addEventListener('pointermove', function (e) {
+    if (!hlDrag) return;
+    if (!hlDrag.on) {
+      if (Math.abs(e.clientX - hlDrag.x0) <= 3) return;
+      hlDrag.on = true;
+      hlBegin(hlDrag.t0);
+    }
+    // While the button is held the browser sends no mousemove (the press is default-prevented), so the drag itself
+    // moves the cut: it stretches from the start to the time under the cursor, in the grid or in the strip, like the
+    // blue selection of a classic annotation follows the cursor after a double-click
+    var st = stripHit(e);
+    hlMouse = { x: e.clientX, y: e.clientY, inside: inGrid(e), overTl: st !== null, tlT: st };
+    if (st !== null) hlNow = st;
+    renderHighlights();
+    hlPlaceTip();
+  });
+  document.addEventListener('pointerup', function (e) {
+    var d = hlDrag; hlDrag = null;
+    if (!d || !d.on || hlStart === null) return;
+    var t = inGrid(e) ? timeAt(e.clientX) : (stripHit(e) !== null ? stripHit(e) : hlCursorTime());
+    hlDragSwallow = true;   // the click that follows the release is not a click on the grid / timeline
+    hlEnd(t, e.clientX);
+  });
+  window.addEventListener('click', function (e) {
+    if (!hlDragSwallow) return;
+    hlDragSwallow = false; e.stopImmediatePropagation(); e.preventDefault();
+  }, true);
+  // Esc leaves Highlight mode (a highlight in progress is dropped)
+  document.addEventListener('keydown', function (e) {
+    if (e.key !== 'Escape' || !hlOn) return;
+    if (e.target.closest && e.target.closest('input, textarea, select, [contenteditable="true"]')) return;
+    e.preventDefault();
+    setHighlightMode(false);
+  });
+  // Single click in the grid: start, then end (capture phase, so the classic annotation clicks don't also run)
+  sigEl.addEventListener('click', function (e) {
+    if (!inGrid(e)) return;
+    var hi = hlStart === null && mode === 'idle' ? hlIndexAt(timeAt(e.clientX)) : -1;  // not while an annotation is being drawn
+    if (hi >= 0) { e.stopPropagation(); openTitle(highlights[hi], e.clientX, true); return; }  // a click on a highlight edits it
+    if (!hlOn) return;
+    e.stopPropagation();
+    // highlights are drawn by click + drag (below). The former two-click interaction (click = start, click = end) is
+    // kept but inactive: HL_TWO_CLICKS (or ?clicks=on in the address) turns it back on. A plain click still ends a
+    // highlight started with D.
+    var t = timeAt(e.clientX);
+    if (hlStart === null) { if (HL_TWO_CLICKS) hlBegin(t); } else hlEnd(t, e.clientX);
+  }, true);
+  document.addEventListener('mousemove', function (e) {
+    hlMouse = { x: e.clientX, y: e.clientY, inside: inGrid(e) && !(e.target.closest && e.target.closest('.vprev, .amenu')),
+                overTl: stripHit(e) !== null, tlT: stripHit(e) };
+    hlPlaceTip();
+    // hovering a finished highlight raises its background opacity
+    var i = -1;
+    if (hlMouse.inside) {
+      var t = timeAt(e.clientX);
+      for (var k = highlights.length - 1; k >= 0; k--) if (t >= highlights[k].a && t <= highlights[k].b) { i = k; break; }
+    }
+    if (i !== hlHover || hlStart !== null) { hlHover = i; renderHighlights(); }
+  });
+  document.addEventListener('keydown', function (e) {
+    var k = e.key && e.key.toLowerCase();
+    if (k !== 'd' && k !== 'f') return;
+    if (e.altKey || e.ctrlKey || e.metaKey) return;
+    if (e.target.closest && e.target.closest('input, textarea, select, [contenteditable="true"]')) return;
+    if (!vAvailable) return;
+    e.preventDefault();
+    // time under the cursor: in the signal grid, or in the timeline's Video timeline strip
+    var at = !hlMouse ? null : hlMouse.inside ? timeAt(hlMouse.x) : hlMouse.overTl ? hlMouse.tlT : null;
+    if (k === 'd') {
+      if (!hlOn) setHighlightMode(true);
+      if (hlStart === null && at !== null) hlBegin(at);
+    } else if (hlOn && hlStart !== null && at !== null) hlEnd(at, hlMouse.x);
+  });
+  function hlAvailability() { hlBtn.disabled = !vAvailable; if (!vAvailable && hlOn) setHighlightMode(false); }
+  vid.addEventListener('error', hlAvailability);
+  hlAvailability();
+
+  // ---- Video highlight menu (Creation 10671:18717 / Edit 10671:18621) ----
+  // Opens beside the end of a highlight that was just finished (Creation), or on a click on an existing highlight — its
+  // area in the signal view, its title tab, or its cut on the timeline (Edit, with Delete). On its right, or its left
+  // when there is no room; vertically centred on the signal view when the end is in view. The title field is focused:
+  // typing + Enter names the highlight, as does choosing a type (Level 2 opens beside Crise / Ondes lentes, as in the
+  // annotation menu). A click elsewhere or Esc keeps what was typed. Without a title it is "Video highlight N".
+  function hlName(x) { return x.title || 'Video highlight ' + x.n; }
+  function hms(t) { var d = new Date(t); return two(d.getUTCHours()) + ':' + two(d.getUTCMinutes()) + ':' + two(d.getUTCSeconds()); }
+  var htBox = document.getElementById('hl-title'), htTitle = document.getElementById('ht-title');
+  var hmL1 = htBox.querySelector('.hm-l1'), hmL2 = htBox.querySelector('.am-l2'), hmDel = htBox.querySelector('.hm-del');
+  hmL1.querySelector('.am-list').innerHTML = LEVEL1.map(function (i) { return itemHtml(i[0], i[1]); }).join('');
+  hmL2.querySelector('.am-list').innerHTML = LEVEL2.map(function (l) { return itemHtml(l); }).join('');
+  var htFor = null, hmParent = null;
+  function openTitle(x, endX, edit) {
+    htFor = x; hmParent = null; hmL2.hidden = true;
+    htBox.querySelectorAll('.am-item.is-open').forEach(function (el) { el.classList.remove('is-open'); });
+    htTitle.value = x.title;
+    document.getElementById('ht-a').textContent = hms(x.a);
+    document.getElementById('ht-b').textContent = hms(x.b);
+    hmDel.hidden = !edit;
+    htBox.dataset.nodeId = edit ? '10671:18621' : '10671:18717';
+    htBox.hidden = false;
+    var r = annotsEl.getBoundingClientRect(), g = gridEl.getBoundingClientRect(), w = htBox.offsetWidth, h = htBox.offsetHeight;
+    var inView = x.b >= view && x.b <= view + SPAN * 1000;
+    var ex = inView ? r.left + (x.b - view) / 1000 / SPAN * r.width : (endX !== undefined ? endX : r.left + r.width / 2);
+    var left = ex + 10 + w <= window.innerWidth - 8 ? ex + 10 : ex - 10 - w;
+    var top = inView ? g.top + (g.height - h) / 2 : g.bottom - h - 12;
+    var tabPlaced = edit && placeByTab(htBox, annotsEl.querySelector('.hl-label[data-i="' + highlights.indexOf(x) + '"]'), w);
+    if (edit && !tabPlaced) {
+      // tab out of view: like the classic annotation menu's own rule (placeMenu) — right of the span, else beside the click
+      var xr = Math.min(r.left + (x.b - view) / 1000 / SPAN * r.width, r.right), cx = endX !== undefined ? endX : xr;
+      left = xr + GAP + w + GAP + W2 <= window.innerWidth - EDGE ? xr + GAP : Math.min(cx + GAP, window.innerWidth - EDGE - w);
+      top = Math.min(r.top + 40, window.innerHeight - Math.max(h, 360) - EDGE);
+    }
+    if (!tabPlaced) {
+      htBox.style.left = Math.max(8, left) + 'px';
+      htBox.style.top = Math.max(8, Math.min(top, window.innerHeight - h - 8)) + 'px';
+    }
+    htTitle.focus();
+    hlPlaceTip();
+  }
+  function closeTitle(keep, title) {
+    if (!htFor) return;
+    if (title !== undefined) htFor.title = title;
+    else if (keep) htFor.title = htTitle.value.trim();
+    htFor = null; htBox.hidden = true; hmL2.hidden = true;
+    renderHighlights(); if (!ppBack.hidden) ppRender();
+    if (document.activeElement && htBox.contains(document.activeElement)) document.activeElement.blur();
+  }
+  function hlIndexAt(t) {
+    if (!hlOn) return -1;   // hidden outside Highlight mode
+    for (var k = highlights.length - 1; k >= 0; k--) if (t >= highlights[k].a && t <= highlights[k].b) return k;
+    return -1;
+  }
+  htTitle.addEventListener('keydown', function (e) {
+    if (e.key === 'Enter') { e.preventDefault(); closeTitle(true); }
+    else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); closeTitle(true); }
+  });
+  // Level 2 beside the hovered arrowed type, on the side with room
+  htBox.addEventListener('mouseover', function (e) {
+    var it = e.target.closest('.am-item');
+    if (!it || !it.closest('.hm-l1')) return;
+    hmL1.querySelectorAll('.am-item.is-open').forEach(function (el) { if (el !== it) el.classList.remove('is-open'); });
+    if (!it.dataset.sub) { hmL2.hidden = true; hmParent = null; return; }
+    it.classList.add('is-open');
+    hmParent = it.dataset.label;
+    hmL2.hidden = false;
+    var m = htBox.getBoundingClientRect(), w2 = hmL2.offsetWidth;
+    hmL2.style.left = (m.right + 10 + w2 <= window.innerWidth - 8 ? m.width + 10 : -10 - w2) + 'px';
+    hmL2.style.top = hmL1.offsetTop + 'px';
+  });
+  htBox.addEventListener('click', function (e) {
+    var it = e.target.closest('.am-item');
+    if (it) { closeTitle(false, it.closest('.am-l2') && hmParent ? hmParent + ' · ' + it.dataset.label : it.dataset.label); return; }
+    if (e.target.closest('.hm-del') && htFor) {
+      highlights.splice(highlights.indexOf(htFor), 1);
+      highlights.forEach(function (x, i) { x.n = i + 1; });
+      hlHover = -1;
+      closeTitle(false);
+    }
+  });
+  // a click anywhere else keeps what was typed and closes the menu; in the signal grid or the timeline that click only
+  // closes it (it does not also start the next highlight)
+  var htSwallow = false;
+  document.addEventListener('pointerdown', function (e) {
+    if (!htFor || htBox.contains(e.target)) return;
+    htSwallow = inGrid(e) || timelineHit(e) !== null || stripHit(e) !== null || !!(e.target.closest && e.target.closest('.hl-label'));
+    closeTitle(true);
+  }, true);
+  window.addEventListener('click', function (e) {
+    if (!htSwallow) return;
+    htSwallow = false; e.stopImmediatePropagation(); e.preventDefault();
+  }, true);
+  // Edit: a click on a highlight's title tab
+  annotsEl.addEventListener('click', function (e) {
+    var lb = e.target.closest('.hl-label');
+    if (!lb || hlStart !== null) return;
+    e.stopPropagation();
+    openTitle(highlights[+lb.dataset.i], e.clientX, true);
+  });
+
+  // ---- Video highlights confirmation popup (10654:53053) ----
+  // Opens when the cursor leaves the page through the top of the window (towards the tabs / close button) and when the
+  // window is being closed (the browser then also asks for confirmation; staying shows the popup). The table lists the
+  // highlights of the active day (the day shown in the signal view when it opens); Edit renames, Delete removes. With
+  // the checkbox, the classic annotations of the chosen type are added as video portions, widened by the margin before
+  // and / or after each one. Only the reader's own annotations exist here, all of the Interpretation type.
+  var ppBack = document.getElementById('pp-back'), ppDaysEl = document.getElementById('pp-days'), ppRows = document.getElementById('pp-rows');
+  var ppDay = 0, ppSelectAll = false, ppMarginIdx = 3, ppBefore = true, ppAfter = false, ppEditing = null;
+  // Annotation types (10668:9443): several can be selected, each a toggle like before / after
+  var PP_TYPES = ['Interpretation', 'Acquisition', 'Algorithms'], ppTypes = {};
+  // the checkbox follows the types: selecting one ticks it (and enables the margin line), deselecting the last unticks it
+  function ppSyncCheck() { ppSelectAll = PP_TYPES.some(function (t) { return ppTypes[t]; }); }
+  var PP_MARGINS = [['1 second', 1], ['5 seconds', 5], ['10 seconds', 10], ['20 seconds', 20], ['1 minute', 60], ['2 minutes', 120]];
+  var DAY_MS = 86400000;
+  function ppDays() {
+    var out = [], d0 = Math.floor(T_START / DAY_MS) * DAY_MS;
+    for (var d = d0; d < T_END; d += DAY_MS) out.push(d);
+    return out;
+  }
+  function isoDate(t) { var d = new Date(t); return d.getUTCFullYear() + '-' + two(d.getUTCMonth() + 1) + '-' + two(d.getUTCDate()); }
+  function ppPortions() {  // classic annotations of the chosen type, with the margin
+    if (!ppSelectAll || !ppTypes.Interpretation) return [];   // the reader's annotations are all Interpretation
+    var m = PP_MARGINS[ppMarginIdx][1] * 1000;
+    return annots.map(function (an) {
+      var s = span(an);
+      return { a: s[0] - (ppBefore ? m : 0), b: s[1] + (ppAfter ? m : 0), label: an.label };
+    });
+  }
+  function ppRender() {
+    var days = ppDays();
+    ppDaysEl.innerHTML = days.map(function (d, i) {
+      return '<button type="button" role="tab" class="pp-day' + (i === ppDay ? ' is-active' : '') + '" aria-selected="' + (i === ppDay) + '" data-i="' + i + '">' +
+             '<span class="n">Day ' + (i + 1) + '</span><span class="d">' + isoDate(d) + '</span></button>';
+    }).join('');
+    var d0 = days[ppDay], d1 = d0 + DAY_MS, h = '';
+    function onDay(x) { return x.a < d1 && x.b > d0; }
+    var times = function (x) { return '<span class="pp-c2"><span>' + hms(x.a) + '</span><img src="assets/pp-arrow-dir.svg" alt="to"><span>' + hms(x.b) + '</span></span>'; };
+    highlights.forEach(function (x, i) {
+      if (!onDay(x)) return;
+      var title = ppEditing === i
+        ? '<input type="text" value="' + esc(x.title) + '" placeholder="Video highlight ' + x.n + '" aria-label="Title" data-i="' + i + '">'
+        : esc(hlName(x));
+      h += '<div class="pp-tr" role="row"><span class="pp-c1"><i class="pp-bar"></i></span>' + times(x) +
+           '<span class="pp-c3">' + title + '</span>' +
+           '<span class="pp-c4"><button type="button" class="pp-act" data-edit="' + i + '" aria-label="Edit title"><img src="assets/pp-edit.svg" alt=""></button>' +
+           '<button type="button" class="pp-act" data-del="' + i + '" aria-label="Delete"><img src="assets/pp-delete.svg" alt=""></button></span></div>';
+    });
+    ppPortions().forEach(function (x) {
+      if (!onDay(x)) return;
+      h += '<div class="pp-tr" role="row"><span class="pp-c1"><i class="pp-bar is-annot"></i></span>' + times(x) +
+           '<span class="pp-c3">' + esc(x.label) + '</span><span class="pp-c4"></span></div>';
+    });
+    ppRows.innerHTML = h || '<div class="pp-empty">No video highlight on this day.</div>';
+    var inp = ppRows.querySelector('input');
+    if (inp) { inp.focus(); inp.select(); }
+    var chk = document.getElementById('pp-check');
+    chk.setAttribute('aria-checked', ppSelectAll ? 'true' : 'false');
+    chk.innerHTML = ppSelectAll
+      ? '<svg viewBox="0 0 18 18"><rect x="0" y="0" width="18" height="18" rx="2" fill="#2f3439"/><path d="M4 9.2l3.2 3.2L14 5.6" stroke="#fff" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+      : '<svg viewBox="0 0 18 18"><rect x="1" y="1" width="16" height="16" rx="2" fill="none" stroke="#2f3439" stroke-width="2"/></svg>';
+    document.getElementById('pp-margin').classList.toggle('is-off', !ppSelectAll);
+    document.getElementById('pp-types').innerHTML = PP_TYPES.map(function (t) {
+      return '<button type="button" class="pp-tog" data-type="' + t + '" aria-pressed="' + !!ppTypes[t] + '"><img src="assets/pp-ok-blue.svg" alt="">' + t + '</button>';
+    }).join('');
+    document.querySelector('#pp-dur span').textContent = PP_MARGINS[ppMarginIdx][0];
+    document.getElementById('pp-before').setAttribute('aria-pressed', ppBefore ? 'true' : 'false');
+    document.getElementById('pp-after').setAttribute('aria-pressed', ppAfter ? 'true' : 'false');
+  }
+  function openPopup() {
+    if (!ppBack.hidden) return;
+    closeTitle(true);
+    var days = ppDays(), mid = view + SPAN * 500;
+    ppDay = Math.max(0, Math.min(days.length - 1, Math.floor((mid - days[0]) / DAY_MS)));
+    ppEditing = null;
+    ppTypes = {}; ppSelectAll = false;   // opens with no annotation type selected
+    ppBack.hidden = false;
+    hlPlaceTip();
+    ppRender();
+    document.getElementById('pp-x').focus();
+  }
+  function closePopup() { ppBack.hidden = true; ppEditing = null; ppCloseMenus(); hlPlaceTip(); }
+  function ppSaveEdit(inp) {
+    var x = highlights[+inp.dataset.i];
+    if (x) x.title = inp.value.trim();
+    ppEditing = null; renderHighlights(); ppRender();
+  }
+  ppDaysEl.addEventListener('click', function (e) { var b = e.target.closest('.pp-day'); if (b) { ppDay = +b.dataset.i; ppEditing = null; ppRender(); } });
+  ppRows.addEventListener('click', function (e) {
+    var ed = e.target.closest('[data-edit]'), del = e.target.closest('[data-del]');
+    if (ed) { ppEditing = +ed.dataset.edit; ppRender(); }
+    else if (del) {
+      highlights.splice(+del.dataset.del, 1);
+      highlights.forEach(function (x, i) { x.n = i + 1; });
+      ppEditing = null; hlHover = -1; renderHighlights(); ppRender();
+    }
+  });
+  ppRows.addEventListener('keydown', function (e) {
+    if (e.target.tagName !== 'INPUT') return;
+    if (e.key === 'Enter') { e.preventDefault(); ppSaveEdit(e.target); }
+    else if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); ppEditing = null; ppRender(); }
+  });
+  ppRows.addEventListener('focusout', function (e) { if (e.target.tagName === 'INPUT' && ppEditing !== null) ppSaveEdit(e.target); });
+  // ticking the checkbox itself selects every type, unticking it clears them
+  document.getElementById('pp-check').addEventListener('click', function () {
+    var on = !ppSelectAll;
+    PP_TYPES.forEach(function (t) { ppTypes[t] = on; });
+    ppSyncCheck(); ppRender();
+  });
+  document.getElementById('pp-before').addEventListener('click', function () { ppBefore = !ppBefore; ppRender(); });
+  document.getElementById('pp-after').addEventListener('click', function () { ppAfter = !ppAfter; ppRender(); });
+  function ppCloseMenus() { ppBack.querySelectorAll('.pp-menu').forEach(function (m) { m.hidden = true; }); }
+  function ppDropdown(btnId, items, current, pick) {
+    var btn = document.getElementById(btnId), menu = btn.nextElementSibling;
+    btn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var open = menu.hidden;
+      ppCloseMenus();
+      if (!open) return;
+      menu.innerHTML = items().map(function (t, i) { return '<li role="option" data-i="' + i + '" aria-selected="' + (i === current()) + '">' + t + '</li>'; }).join('');
+      menu.hidden = false;
+      var r = btn.getBoundingClientRect();
+      menu.classList.toggle('is-up', r.bottom + 4 + menu.offsetHeight > window.innerHeight - 8 && r.top - 4 - menu.offsetHeight >= 8);
+    });
+    menu.addEventListener('click', function (e) {
+      var li = e.target.closest('li'); if (!li) return;
+      e.stopPropagation(); pick(+li.dataset.i); ppCloseMenus(); ppRender();
+    });
+  }
+  document.getElementById('pp-types').addEventListener('click', function (e) {
+    var b = e.target.closest('.pp-tog');
+    if (b) { ppTypes[b.dataset.type] = !ppTypes[b.dataset.type]; ppSyncCheck(); ppRender(); }
+  });
+  ppDropdown('pp-dur', function () { return PP_MARGINS.map(function (m) { return m[0]; }); }, function () { return ppMarginIdx; }, function (i) { ppMarginIdx = i; });
+  ppBack.addEventListener('click', function (e) { if (!e.target.closest('.pp-ddw')) ppCloseMenus(); if (e.target === ppBack) closePopup(); });
+  document.getElementById('pp-x').addEventListener('click', closePopup);
+  document.getElementById('pp-back-btn').addEventListener('click', closePopup);
+  document.getElementById('pp-ok').addEventListener('click', closePopup);
+  // While the popup is open: Esc closes it, and the app's keyboard shortcuts are paused
+  window.addEventListener('keydown', function (e) {
+    if (ppBack.hidden) return;
+    if (e.key === 'Escape') {
+      if (e.target.closest && e.target.closest('.pp-rows input')) return;
+      e.preventDefault(); e.stopImmediatePropagation();
+      if (!ppBack.querySelector('.pp-menu:not([hidden])')) closePopup(); else ppCloseMenus();
+      return;
+    }
+    if (e.key !== 'Tab' && e.key !== 'Enter' && e.key !== ' ' && !(e.target.closest && e.target.closest('input'))) e.stopImmediatePropagation();
+  }, true);
+  // Exit intent: leaving through the top edge of the window
+  document.documentElement.addEventListener('mouseleave', function (e) { if (e.clientY <= 0) openPopup(); });
+  // Closing the tab with ⌘W / Ctrl+W: browsers only let a page ask through their own "leave the page?" prompt, so that
+  // prompt shows first and staying opens the popup. A refresh must not ask: the page fires the same event for both, so
+  // a refresh is recognised by its keys (F5, ⌘R / Ctrl+R, just pressed) or by the cursor being outside the page (the
+  // reload button). The cursor is inside the page when ⌘W / Ctrl+W is pressed.
+  var ppPointerIn = true, ppReloadKeyAt = 0;
+  document.documentElement.addEventListener('mouseleave', function () { ppPointerIn = false; });
+  document.addEventListener('mousemove', function () { ppPointerIn = true; });
+  window.addEventListener('keydown', function (e) {
+    if (e.key === 'F5' || ((e.metaKey || e.ctrlKey) && (e.key === 'r' || e.key === 'R'))) ppReloadKeyAt = Date.now();
+  }, true);
+  window.addEventListener('beforeunload', function (e) {
+    if (!highlights.length || !ppPointerIn || Date.now() - ppReloadKeyAt < 3000) return;
+    e.preventDefault(); e.returnValue = '';
+    openPopup();
+  });
+
+  setMarkerState();
+  layout();
+  render();
+  // ---- Button tooltips (5413:14907) ----
+  // Hovering a button shows its name, plus its keyboard shortcut when it has one. [selector, label, shortcut]; a label or
+  // shortcut can be a function for buttons whose action changes (Highlight on / off, video play / pause).
+  var TIPS = [
+    ['.top-left .menu-btn', 'Menu'], ['.top-end', 'Menu'], ['.montage .edit', 'Edit montage'],
+    ['.bb-left .slot:nth-child(1)', 'PDF report'], ['.bb-left .slot:nth-child(2)', 'Keyboard shortcuts'],
+    ['#hl-btn', function () { return hlOn ? 'Exit highlight mode' : 'Highlight mode'; }, function () { return hlOn ? 'ESC' : 'D'; }],
+    ['.nav > .ico20:nth-child(1)', 'First page'], ['.nav > .ico20:nth-child(2)', 'Previous annotation'], ['.nav > .ico20:nth-child(3)', 'Previous second'],
+    ['#play-back', 'Previous page', '←'], ['#window-select', 'Signal window duration'], ['#play-fwd', 'Next page', '→'],
+    ['.nav > .ico20:nth-child(5)', 'Next second'], ['.nav > .ico20:nth-child(6)', 'Next annotation'], ['.nav > .ico20:nth-child(7)', 'Last page'],
+    ['.speed > img', 'Fast forward'], ['.speed-ctrl > img:first-child', 'Slower'], ['.speed-ctrl > img:last-child', 'Faster'],
+    ['.bb-right .fs', 'Full screen'],
+    ['.video-marker', function () { return vMarker.dataset.st === 'disabled' ? 'Video unavailable' : 'Video'; }, function () { return vMarker.dataset.st === 'disabled' ? '' : 'V'; }, '.cam'],
+    ['#vp-close', 'Close video', 'V'], ['#vp-play', function () { return vPlaying ? 'Pause' : 'Play'; }], ['#vp-full', 'Full screen'],
+    ['#pp-x', 'Close', 'ESC'], ['.pp-act[data-edit]', 'Edit title'], ['.pp-act[data-del]', 'Delete']
+  ];
+  var btEl = document.getElementById('btn-tip'), btTxt = btEl.querySelector('.bt-txt'), btKey = btEl.querySelector('.bt-key');
+  var btFor = null, btEntry = null, btTimer = 0;
+  function btMatch(t) {
+    if (!t || !t.closest) return null;
+    for (var i = 0; i < TIPS.length; i++) { var el = t.closest(TIPS[i][0]); if (el) return [el, TIPS[i]]; }
+    return null;
+  }
+  function btVal(v) { return typeof v === 'function' ? v() : v; }
+  function btShow() {
+    if (!btFor || !btFor.isConnected) { btHide(); return; }
+    btTxt.textContent = btVal(btEntry[1]);
+    var k = btVal(btEntry[2]); btKey.textContent = k || ''; btKey.hidden = !k;
+    btEl.hidden = false;
+    var r = (btEntry[3] && btFor.querySelector(btEntry[3]) || btFor).getBoundingClientRect(), w = btEl.offsetWidth, h = btEl.offsetHeight;  // [3]: the part it points at
+    var above = r.top + r.height / 2 > window.innerHeight / 2 ? r.top - 4 - h >= 0 : r.bottom + 4 + h > window.innerHeight;
+    btEl.classList.toggle('is-above', above);
+    btEl.style.left = Math.max(4, Math.min(r.left + r.width / 2 - w / 2, window.innerWidth - w - 4)) + 'px';
+    btEl.style.top = (above ? r.top - 4 - h : r.bottom + 4) + 'px';
+    btEl.querySelector('img').style.transform = 'translateX(' + (r.left + r.width / 2 - (parseFloat(btEl.style.left) + w / 2)) + 'px)';
+  }
+  function btHide() { clearTimeout(btTimer); btFor = null; btEl.hidden = true; }
+  document.addEventListener('mouseover', function (e) {
+    var m = btMatch(e.target);
+    if (m && m[0] === btFor) return;
+    btHide();
+    if (!m) return;
+    btFor = m[0]; btEntry = m[1];
+    btTimer = setTimeout(btShow, 300);
+  });
+  document.addEventListener('mouseout', function (e) { if (btFor && !btFor.contains(e.relatedTarget)) btHide(); });
+  // a click hides it; it comes back with the new label when the action changes (e.g. Highlight on → off)
+  document.addEventListener('pointerdown', function () { if (!btEl.hidden) { var f = btFor, en = btEntry; btHide(); btFor = f; btEntry = en; btTimer = setTimeout(btShow, 600); } }, true);
+  window.addEventListener('scroll', btHide, true);
+
+})();
+</script>
+
+</body></html>
