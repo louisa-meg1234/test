@@ -429,7 +429,7 @@ img { display: block; max-width: none; }
   flex: 0 0 var(--h-bottom);
   height: var(--h-bottom);
   box-sizing: border-box;
-  padding: 0 19px 0 10px;  /* no vertical padding: the 46px Toggle Buttons fit the 48px bar */
+  padding: 4px 19px 4px 10px;
   background: var(--white);
   border-top: 1px solid var(--grey-border-2);
   filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.15));
@@ -603,32 +603,29 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
 .bb-right { display: flex; align-items: center; gap: 40px; justify-self: end; }
 .toggle { display: flex; align-items: center; gap: 8px; font-size: 15px; font-weight: 500; line-height: 11px; color: var(--black); white-space: nowrap; }
 .toggle.qeeg { gap: 7px; }
-/* Toggle Button (10594:45700), used by every toggle: switch on top, icon + label below. Figma sizes count the 1px border
-   inside the padding: Default 10594:45696 (6px, light-blue border) · Hover 10594:45697 (4px + 2px light-blue inner panel) ·
-   Active = on, 10594:45699 (6px, blue border, switch on) · Unavailable 10594:45698 (4px, grey card, 28px grey switch) */
+/* Inline Button (10716:28333), used by every toggle: icon + label on one line, 32px high, a click switches it on / off.
+   Figma sizes count the 1px border inside the padding:
+   Default 10716:28329 (8px padding, light-blue border) · Hover 10716:28330 (4px / 3px padding + 24px light-blue inner panel) ·
+   Active = on, 10716:28331 (solid blue, white icon and label) · Unavailable 10716:28332 (grey card, grey label) */
 .tg-btn {
-  box-sizing: border-box; padding: 5px; display: flex; align-items: center; justify-content: center; flex: none;
-  background: var(--white); border: 1px solid #c9eafa; border-radius: 8px; filter: drop-shadow(0 2px 4px rgba(110, 139, 200, 0.1));
+  box-sizing: border-box; height: 32px; padding: 0 7px; display: flex; align-items: center; justify-content: center; flex: none;
+  background: var(--white); border: 1px solid #c9eafa; border-radius: 7px; filter: drop-shadow(0 2px 4px rgba(110, 139, 200, 0.1));
   cursor: pointer; font: inherit;
 }
-.tg-face { display: flex; flex-direction: column; align-items: center; gap: 2px; border-radius: 5px; }
-.tg-btn:hover:not(:disabled):not(.is-active) { padding: 3px; filter: drop-shadow(0 1px 4px rgba(30, 77, 173, 0.08)); }
-.tg-btn:hover:not(:disabled):not(.is-active) .tg-face { padding: 2px; background: rgba(73, 184, 237, 0.1); }
-.tg-sw { position: relative; flex: none; width: 30px; height: 16px; border-radius: 8px; background: rgba(73, 184, 237, 0.3); transition: background 0.15s; }
-.tg-sw::after { content: ""; position: absolute; left: 2px; top: 2px; width: 12px; height: 12px; border-radius: 50%; background: #fff; transition: left 0.15s; }
-.tg-btn.is-active { border-color: #49b8ed; }
-.tg-btn.is-active .tg-sw { background: #49b8ed; }
-.tg-btn.is-active .tg-sw::after { left: 16px; }
-.tg-in { flex: none; display: flex; align-items: center; gap: 4px; height: 16px; }
+.tg-face { display: flex; align-items: center; gap: 6px; height: 24px; border-radius: 4px; }
+.tg-btn:hover:not(:disabled):not(.is-active) { padding: 0 3px; }
+.tg-btn:hover:not(:disabled):not(.is-active) .tg-face { padding: 0 4px 0 5px; background: rgba(73, 184, 237, 0.08); }
 .tg-ico { width: 16px; height: 16px; flex: none; display: grid; place-items: center; }
 .tg-lbl {
   font-family: 'Inter Tight', 'Ubuntu', sans-serif; font-size: 12px; font-weight: 600; letter-spacing: 0.5px; line-height: normal;
   color: #1b1d3a; white-space: nowrap;
 }
-.tg-btn:disabled { padding: 3px; background: #f8f8f9; border-color: #e6ebf0; cursor: default; }
-.tg-btn:disabled .tg-sw { width: 28px; background: #cbd2d8; }
+.tg-btn.is-active { background: #49b8ed; border-color: #49b8ed; }
+.tg-btn.is-active .tg-lbl { color: var(--white); }
+.tg-btn.is-active .tg-ico img { filter: brightness(0) invert(1); }
+.tg-btn:disabled { background: #e6ebf0; border-color: #cbd2d8; cursor: default; }
 .tg-btn:disabled .tg-lbl { color: #919ba6; }
-.tg-btn:disabled .tg-ico { opacity: 0.4; filter: grayscale(1); }
+.tg-btn:disabled .tg-ico img { filter: grayscale(1); opacity: 0.5; }
 .tg-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* Narrower windows: tighten horizontal gaps only (heights unchanged) */
 @media (max-width: 1599px) {
@@ -684,8 +681,8 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
           <div class="dd-tail"><img class="arrow" src="assets/arrow-down-montage.svg" alt=""><span class="vsep"></span><img class="edit" src="assets/edit.svg" alt="Edit montage"></div>
         </div>
       </div>
-      <button type="button" class="tg-btn" role="switch" aria-checked="false" data-node-id="10594:45700"><span class="tg-face"><span class="tg-sw" aria-hidden="true"></span><span class="tg-in"><span class="tg-ico"><img src="assets/as-recorded.svg" alt="" style="width:16px;height:16px"></span><span class="tg-lbl">As recorded</span></span></span></button>
-      <button type="button" class="tg-btn" role="switch" aria-checked="false" data-node-id="10594:45700"><span class="tg-face"><span class="tg-sw" aria-hidden="true"></span><span class="tg-in"><span class="tg-ico"><img src="assets/notch.svg" alt="" style="width:10.03px;height:16px"></span><span class="tg-lbl">Notch</span></span></span></button>
+      <button type="button" class="tg-btn" role="switch" aria-checked="false" data-node-id="10716:28333"><span class="tg-face"><span class="tg-ico"><img src="assets/as-recorded.svg" alt="" style="width:16px;height:16px"></span><span class="tg-lbl">As recorded</span></span></button>
+      <button type="button" class="tg-btn" role="switch" aria-checked="false" data-node-id="10716:28333"><span class="tg-face"><span class="tg-ico"><img src="assets/notch.svg" alt="" style="width:10.03px;height:16px"></span><span class="tg-lbl">Notch</span></span></button>
     </div>
     <div class="top-end"><img src="assets/menu.svg" alt="Menu"></div>
   </header>
@@ -818,9 +815,9 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
 
     <div class="bb-right">
       <!-- Hypnogramme toggle: opens / closes the full hypnogram (also opened from the sleep periods in the timeline) -->
-      <button type="button" class="tg-btn" role="switch" aria-checked="false" data-node-id="10594:45700" id="sleep-toggle"><span class="tg-face"><span class="tg-sw" aria-hidden="true"></span><span class="tg-in"><span class="tg-ico"><img src="assets/sleep.svg" alt="" style="width:16px;height:14.17px"></span><span class="tg-lbl">Hypnogramme</span></span></span></button>
-      <button type="button" class="tg-btn is-active" role="switch" aria-checked="true" data-node-id="10594:45700"><span class="tg-face"><span class="tg-sw" aria-hidden="true"></span><span class="tg-in"><span class="tg-ico"><img src="assets/algorithm.svg" alt="" style="width:15.3px;height:16px"></span><span class="tg-lbl">Algorithme</span></span></span></button>
-      <button type="button" class="tg-btn" role="switch" aria-checked="false" data-node-id="10594:45700"><span class="tg-face"><span class="tg-sw" aria-hidden="true"></span><span class="tg-in"><span class="tg-lbl">qEEG</span></span></span></button>
+      <button type="button" class="tg-btn" role="switch" aria-checked="false" data-node-id="10716:28333" id="sleep-toggle"><span class="tg-face"><span class="tg-ico"><img src="assets/sleep.svg" alt="" style="width:16px;height:14.17px"></span><span class="tg-lbl">Hypnogramme</span></span></button>
+      <button type="button" class="tg-btn is-active" role="switch" aria-checked="true" data-node-id="10716:28333"><span class="tg-face"><span class="tg-ico"><img src="assets/algorithm.svg" alt="" style="width:15.3px;height:16px"></span><span class="tg-lbl">Algorithme</span></span></button>
+      <button type="button" class="tg-btn" role="switch" aria-checked="false" data-node-id="10716:28333"><span class="tg-face"><span class="tg-lbl">qEEG</span></span></button>
       <div class="fs"><img src="assets/fullscreen.svg" alt="Full screen" style="width:23.17px;height:22.9px"></div>
     </div>
   </footer>
@@ -1128,7 +1125,7 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
     sleepToggle.setAttribute('aria-checked', on ? 'true' : 'false');
     sleepToggle.classList.toggle('is-active', on);
   }
-  // Toggle Buttons (10594:45700): a click switches them on (Active) / off (Default); the Hypnogramme one has its own handler
+  // Inline Buttons (10716:28333): a click switches them on (Active) / off (Default); the Hypnogramme one has its own handler
   document.querySelectorAll('.tg-btn').forEach(function (b) {
     if (b === sleepToggle) return;
     b.addEventListener('click', function () {
