@@ -19,7 +19,6 @@ Then open http://localhost:8080/.
 | Highlight mode | `prototype-highlight-mode.html` | `highlight-mode.html` |
 | Highlight mode variant | `prototype-highlight-mode-variant.html` | `highlight-mode-variant.html` |
 | Hypnogram | `prototype-hypnogram.html` | `hypnogram.html` |
-| Hypnogram 12h | `prototype-hypnogram-12h.html` | `hypnogram-12h.html` |
 | Sleep synthesis | `prototype-sleep-synthesis.html` | `sleep-synthesis.html` |
 | Neuronaute exam type flow | – | `neuronaute-exam-type-flow.html` |
 | Synthesis translations | – | `synthesis-translations.html` |
