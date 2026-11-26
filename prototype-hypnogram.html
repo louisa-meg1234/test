@@ -627,6 +627,7 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
 .tg-btn:disabled .tg-lbl { color: #919ba6; }
 .tg-btn:disabled .tg-ico img { filter: grayscale(1); opacity: 0.5; }
 .tg-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.tg-group { display: flex; align-items: center; gap: 8px; flex: none; }  /* 8px between neighbouring toggle buttons */
 /* Narrower windows: tighten horizontal gaps only (heights unchanged) */
 @media (max-width: 1599px) {
   .top-right { gap: 12px; }
@@ -681,8 +682,10 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
           <div class="dd-tail"><img class="arrow" src="assets/arrow-down-montage.svg" alt=""><span class="vsep"></span><img class="edit" src="assets/edit.svg" alt="Edit montage"></div>
         </div>
       </div>
-      <button type="button" class="tg-btn" role="switch" aria-checked="false" data-node-id="10716:28333"><span class="tg-face"><span class="tg-ico"><img src="assets/as-recorded.svg" alt="" style="width:16px;height:16px"></span><span class="tg-lbl">As recorded</span></span></button>
-      <button type="button" class="tg-btn" role="switch" aria-checked="false" data-node-id="10716:28333"><span class="tg-face"><span class="tg-ico"><img src="assets/notch.svg" alt="" style="width:10.03px;height:16px"></span><span class="tg-lbl">Notch</span></span></button>
+      <div class="tg-group">
+        <button type="button" class="tg-btn" role="switch" aria-checked="false" data-node-id="10716:28333"><span class="tg-face"><span class="tg-ico"><img src="assets/as-recorded.svg" alt="" style="width:16px;height:16px"></span><span class="tg-lbl">As recorded</span></span></button>
+        <button type="button" class="tg-btn" role="switch" aria-checked="false" data-node-id="10716:28333"><span class="tg-face"><span class="tg-ico"><img src="assets/notch.svg" alt="" style="width:10.03px;height:16px"></span><span class="tg-lbl">Notch</span></span></button>
+      </div>
     </div>
     <div class="top-end"><img src="assets/menu.svg" alt="Menu"></div>
   </header>
@@ -815,9 +818,11 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
 
     <div class="bb-right">
       <!-- Hypnogramme toggle: opens / closes the full hypnogram (also opened from the sleep periods in the timeline) -->
-      <button type="button" class="tg-btn" role="switch" aria-checked="false" data-node-id="10716:28333" id="sleep-toggle"><span class="tg-face"><span class="tg-ico"><img src="assets/sleep.svg" alt="" style="width:16px;height:14.17px"></span><span class="tg-lbl">Hypnogramme</span></span></button>
-      <button type="button" class="tg-btn is-active" role="switch" aria-checked="true" data-node-id="10716:28333"><span class="tg-face"><span class="tg-ico"><img src="assets/algorithm.svg" alt="" style="width:15.3px;height:16px"></span><span class="tg-lbl">Algorithme</span></span></button>
-      <button type="button" class="tg-btn" role="switch" aria-checked="false" data-node-id="10716:28333"><span class="tg-face"><span class="tg-lbl">qEEG</span></span></button>
+      <div class="tg-group">
+        <button type="button" class="tg-btn" role="switch" aria-checked="false" data-node-id="10716:28333" id="sleep-toggle"><span class="tg-face"><span class="tg-ico"><img src="assets/sleep.svg" alt="" style="width:16px;height:14.17px"></span><span class="tg-lbl">Hypnogramme</span></span></button>
+        <button type="button" class="tg-btn is-active" role="switch" aria-checked="true" data-node-id="10716:28333"><span class="tg-face"><span class="tg-ico"><img src="assets/algorithm.svg" alt="" style="width:15.3px;height:16px"></span><span class="tg-lbl">Algorithme</span></span></button>
+        <button type="button" class="tg-btn" role="switch" aria-checked="false" data-node-id="10716:28333"><span class="tg-face"><span class="tg-lbl">qEEG</span></span></button>
+      </div>
       <div class="fs"><img src="assets/fullscreen.svg" alt="Full screen" style="width:23.17px;height:22.9px"></div>
     </div>
   </footer>
