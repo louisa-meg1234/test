@@ -270,6 +270,7 @@ img { display: block; max-width: none; }
   font-size: 14px; font-weight: 500; letter-spacing: 0.7px; color: #1b1d3a; white-space: nowrap;
 }
 .am-item span { flex: 1 1 auto; }
+.annot-label.is-fixed { cursor: default; }
 .am-item img { width: 20px; height: 20px; transform: rotate(-90deg); flex: none; }
 .am-item:hover, .am-item.is-open { background: #f8f8f9; }
 .am-sep { display: block; width: 100%; height: 1px; }
@@ -1418,6 +1419,17 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
   var LEVEL1 = [['Crise', true], ['Rythmes rapides'], ['Ondes lentes', true], ['Endormissement'], ['Réveil'], ['Artefact']];
   var LEVEL2 = ['Focale', 'Focale secondairement généralisée', 'Généralisée', 'Début inconnu', 'Pointes rapides', 'Pointes lentes', 'Polypointes', 'Polypointes-ondes'];
   var annots = [], sel = null, mode = 'idle', editing = null, chan = '', l2Parent = null, commentFor = null;
+  // Acquisition annotations recorded with the exam (category Acquisition, #1E4DAD), 2026/09/28: time;duration;type;comment.
+  // They come from the recording, so they are read-only (no edit menu). Tab text = the comment ("Acquisition" type) or the
+  // type followed by its comment (Impedance, "HPN Requested to …", "SLI 2 Hz").
+  var ACQ_COLOR = '#1E4DAD';
+  '15:26:00;0:00:02;Impedance;|15:28:00;0:00:03;Impedance;|15:32:00;0:00:04;Acquisition;19 electrodes Icecap|15:33:00;0:00:06;Acquisition;Jean Dupont de la Pépinière|15:34:00;0:00:03;Acquisition;21 Long.|15:36:00;0:00:10;Acquisition;Opens eyes|15:37:00;0:00:10;Acquisition;Closes eyes|15:38:00;0:00:10;Acquisition;Opens eyes|15:39:00;0:00:10;Acquisition;Closes eyes|15:40:00;0:02:14;HPN;Requested to hyperventilate|15:42:00;0:00:04;Acquisition;Subject action|15:42:00;0:00:03;HPN;Requested to breath normally|15:43:00;0:00:10;Acquisition;Opens eyes|15:45:00;0:00:10;Acquisition;Closes eyes|15:45:30;0:00:10;SLI;2 Hz|15:45:40;0:00:10;SLI;4 Hz|15:45:50;0:00:10;SLI;6Hz|15:46:00;0:00:10;SLI;8 Hz|15:46:10;0:00:10;SLI;10 Hz|15:46:20;0:00:10;SLI;12 Hz|15:46:30;0:00:10;SLI;14 Hz|15:46:40;0:00:10;SLI;16 Hz|15:46:50;0:00:10;SLI;18 Hz|15:47:00;0:00:10;SLI;20 Hz|15:47:10;0:00:10;SLI;25 Hz|15:47:20;0:00:10;SLI;30 Hz|15:47:30;0:00:10;SLI;35 Hz|15:47:40;0:00:10;SLI;40 Hz|15:47:50;0:00:10;SLI;45 Hz|15:48:00;0:00:10;SLI;50 Hz|15:48:10;0:00:10;SLI;55 Hz|15:48:20;0:00:10;SLI;60 Hz'.split('|').forEach(function (r) {
+    var c = r.split(';'), h = c[0].split(':'), d = c[1].split(':');
+    var a = Date.UTC(2026, 8, 28, +h[0], +h[1], +h[2]), b = a + ((+d[0]) * 3600 + (+d[1]) * 60 + (+d[2])) * 1000;
+    var label = c[2] === 'Acquisition' ? c[3] : (c[3] ? c[2] + ' ' + c[3] : c[2]);
+    annots.push({ a: a, b: b, label: label, comment: '', type: c[2], cat: 'Acquisition', color: ACQ_COLOR, fixed: true });
+  });
+  function hexA(hex, al) { var n = parseInt(hex.slice(1), 16); return 'rgba(' + (n >> 16) + ', ' + ((n >> 8) & 255) + ', ' + (n & 255) + ', ' + al + ')'; }
   var annotsEl = document.getElementById('annots'), selEl = document.getElementById('annot-sel');
   var sigEl = document.querySelector('.signals'), menu = document.getElementById('amenu');
   var l1 = menu.querySelector('.am-l1'), l2 = menu.querySelector('.am-l2'), cBox = menu.querySelector('.am-comment');
@@ -1453,12 +1465,18 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
     var h = '';
     annots.forEach(function (a, i) {
       var s = span(a), w = ((s[1] - s[0]) / 1000 / SPAN * 100).toFixed(4) + '%';
-      h += '<div class="annot-area" style="left:' + leftOf(s[0]) + ';width:' + w + '"></div>' +
-           '<div class="annot-label" data-i="' + i + '" style="left:' + leftOf(s[0]) + '"' + (a.comment ? ' title="' + esc(a.comment) + '"' : '') +
-           '><span>' + esc(a.label) + '</span></div>';
+      h += '<div class="annot-area" style="left:' + leftOf(s[0]) + ';width:' + w + (a.color ? ';background:' + hexA(a.color, 0.08) : '') + '"></div>' +
+           '<div class="annot-label' + (a.fixed ? ' is-fixed' : '') + '" data-i="' + i + '" style="left:' + leftOf(s[0]) + '"' + (a.comment ? ' title="' + esc(a.comment) + '"' : '') +
+           '><span' + (a.color ? ' style="background:' + a.color + '"' : '') + '>' + esc(a.label) + '</span></div>';
     });
     annotsEl.querySelectorAll('.annot-area, .annot-label').forEach(function (el) { el.remove(); });
     annotsEl.insertAdjacentHTML('beforeend', h);
+    // tabs starting at the same time (or too close) would cover each other: each one starts 2px after the previous one
+    var prevR = -Infinity;
+    Array.prototype.slice.call(annotsEl.querySelectorAll('.annot-label')).sort(function (x, y) { return x.offsetLeft - y.offsetLeft; }).forEach(function (el) {
+      if (el.offsetLeft < prevR + 2) el.style.left = (prevR + 2) + 'px';
+      prevR = el.offsetLeft + el.offsetWidth;
+    });
     if (sel) {
       var s = span(sel);
       selEl.style.left = leftOf(s[0]);
@@ -1467,6 +1485,7 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
     selEl.hidden = !sel;
     ov.querySelectorAll('.annot-stroke').forEach(function (el) { el.remove(); });
     ov.insertAdjacentHTML('beforeend', annots.map(function (a) {
+      if (a.color) return '<div class="annot-stroke" style="left:' + pct(timeToFigmaX(span(a)[0])) + ';background:' + a.color + '"></div>';
       return '<img class="annot-stroke" src="assets/annot-stroke.svg" alt="" style="left:' + pct(timeToFigmaX(span(a)[0])) + '">';
     }).join(''));
     if (typeof hlShortenTicks === 'function') hlShortenTicks();
@@ -1645,7 +1664,7 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
     var t = timeAt(e.clientX);
     for (var i = annots.length - 1; i >= 0; i--) {
       var s = span(annots[i]);
-      if (t >= s[0] && t <= s[1]) { editAnnot(i); return; }
+      if (!annots[i].fixed && t >= s[0] && t <= s[1]) { editAnnot(i); return; }
     }
     chan = channelAt(e.clientY);
     sel = { a: t, b: t };
@@ -1654,7 +1673,7 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
   });
   annotsEl.addEventListener('dblclick', function (e) {
     var l = e.target.closest('.annot-label');
-    if (l && mode === 'idle') editAnnot(+l.dataset.i);
+    if (l && mode === 'idle' && !annots[+l.dataset.i].fixed) editAnnot(+l.dataset.i);
   });
   // A single click on a placed annotation — its area in the signal view or its red title tab — opens its menu
   // (Annotation Re-editing - Level 1, 10648:38534: the types, "Champs libre..." and Delete), like a click on a video
@@ -1664,12 +1683,12 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
     var t = timeAt(e.clientX);
     for (var i = annots.length - 1; i >= 0; i--) {
       var s = span(annots[i]);
-      if (t >= s[0] && t <= s[1]) { e.stopPropagation(); editAnnot(i, e.clientX); return; }
+      if (!annots[i].fixed && t >= s[0] && t <= s[1]) { e.stopPropagation(); editAnnot(i, e.clientX); return; }
     }
   });
   annotsEl.addEventListener('click', function (e) {
     var l = e.target.closest('.annot-label');
-    if (!l || mode !== 'idle' || e.detail > 1) return;
+    if (!l || mode !== 'idle' || e.detail > 1 || annots[+l.dataset.i].fixed) return;
     e.stopPropagation();
     editAnnot(+l.dataset.i, e.clientX);
   });
@@ -2261,9 +2280,9 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
   }
   function isoDate(t) { var d = new Date(t); return d.getUTCFullYear() + '-' + two(d.getUTCMonth() + 1) + '-' + two(d.getUTCDate()); }
   function ppPortions() {  // classic annotations of the chosen type, with the margin
-    if (!ppSelectAll || !ppTypes.Interpretation) return [];   // the reader's annotations are all Interpretation
+    if (!ppSelectAll) return [];
     var m = PP_MARGINS[ppMarginIdx][1] * 1000;
-    return annots.map(function (an) {
+    return annots.filter(function (an) { return ppTypes[an.cat || 'Interpretation']; }).map(function (an) {
       var s = span(an);
       return { a: s[0] - (ppBefore ? m : 0), b: s[1] + (ppAfter ? m : 0), label: an.label };
     });
