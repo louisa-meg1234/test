@@ -1533,8 +1533,16 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
     label = label.trim();
     if (!label) return;
     var comment = commentFor && cInput.value.trim() ? cInput.value.trim() : '';
-    if (editing !== null) { annots[editing].label = label; annots[editing].comment = comment; }
-    else if (sel) annots.push({ a: sel.a, b: sel.b, label: label, comment: comment });
+    if (editing !== null) {
+      var ed = annots[editing], hx = highlights.filter(function (x) { return x.annot === ed; })[0];
+      if (hx && hx.title === ed.label) hx.title = label;   // its video highlight follows a renamed annotation
+      ed.label = label; ed.comment = comment;
+      renderHighlights();
+    } else if (sel) {
+      var an = { a: sel.a, b: sel.b, label: label, comment: comment };
+      annots.push(an);
+      hlFromAnnot(an);
+    }
     sel = null;
     menu.hidden = true; mode = 'idle'; editing = null;
     renderAnnots();
@@ -1567,7 +1575,8 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
     var it = e.target.closest('.am-item');
     if (it) { commit(fullLabel(it)); return; }  // any item validates, including Level 1 items that open a Level 2 on hover
     if (e.target.closest('.am-foot') && editing !== null) {
-      annots.splice(editing, 1);
+      var gone = annots.splice(editing, 1)[0];
+      hlDropAnnot(gone);
       menu.hidden = true; mode = 'idle'; editing = null; renderAnnots();
     }
   });
@@ -1904,6 +1913,27 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
     if (on) showPreview(true);
     hlSetCursorTip();
     renderHighlights();
+  }
+  // Placing an annotation (all of the reader's annotations are of the Interpretation type) also highlights its video,
+  // 30 s before its start to 30 s after its end (kept inside the recording), titled with the annotation's label.
+  // Same merge rule as a drawn highlight; deleting the annotation removes its highlight.
+  var ANNOT_HL_MARGIN = 30000;
+  function hlFromAnnot(an) {
+    var s = span(an), a = Math.max(s[0] - ANNOT_HL_MARGIN, T_START), b = Math.min(s[1] + ANNOT_HL_MARGIN, T_END);
+    if (!highlights.some(function (x) { return x.a <= a && x.b >= b; })) {
+      highlights = highlights.filter(function (x) { return !(x.a >= a && x.b <= b); });
+      highlights.push({ a: a, b: b, title: an.label, annot: an });
+    }
+    highlights.sort(function (x, y) { return x.a - y.a; });
+    highlights.forEach(function (x, i) { x.n = i + 1; });
+    renderHighlights();
+  }
+  function hlDropAnnot(an) {
+    var before = highlights.length;
+    highlights = highlights.filter(function (x) { return x.annot !== an; });
+    if (highlights.length === before) return;
+    highlights.forEach(function (x, i) { x.n = i + 1; });
+    hlHover = -1; renderHighlights();
   }
   function hlBegin(t) { hlStart = t; hlNow = t; hlSetCursorTip(); renderHighlights(); }
   function hlEnd(t, endX) {
