@@ -691,7 +691,7 @@ img { display: block; max-width: none; }
 .sleep-timeline.sleep-off .hypno-condensed,
 .sleep-timeline.sleep-off .night-outline { display: none; }
 .active-window {
-  position: absolute; top: 0; height: 36.27px; width: 7.99px; box-sizing: border-box;
+  position: absolute; top: 0; height: 36.27px; width: 7.99px; box-sizing: border-box; z-index: 4;  /* above the yellow highlight bars (.hl-cut, z 3) */
   border: 1px solid #e41f13; border-radius: 2px;
   background: linear-gradient(rgba(228, 31, 19, 0.08), rgba(228, 31, 19, 0.08)), linear-gradient(rgba(255, 255, 255, 0.2), rgba(255, 255, 255, 0.2));
 }
