@@ -379,7 +379,7 @@ img { display: block; max-width: none; }
 .hl-label span { text-box: trim-both cap alphabetic; }
 /* Timeline: Video active cut (10659:64692), 9px high, at the bottom of the 3-day box (its bottom caps just inside the
    box's bottom border): #1B1D3A 20% fill between two 2px I-beam ends (5px caps), fading out over 5px beyond each end */
-.hl-cut { position: absolute; top: 25.12px; height: 9px; z-index: 3; pointer-events: none; background: rgba(27, 29, 58, 0.2); }
+.hl-cut { position: absolute; top: 26px; height: 9px; z-index: 3; pointer-events: none; background: rgba(27, 29, 58, 0.2); }
 .hl-cut::before, .hl-cut::after { content: ""; position: absolute; top: 0; bottom: 0; width: 5px; }
 .hl-cut::before { right: 100%; background: linear-gradient(to left, rgba(27, 29, 58, 0.2) 12%, rgba(27, 29, 58, 0) 74.5%); }
 .hl-cut::after { left: 100%; background: linear-gradient(to right, rgba(27, 29, 58, 0.2) 12%, rgba(27, 29, 58, 0) 74.5%); }
@@ -389,6 +389,8 @@ img { display: block; max-width: none; }
 .hl-cut i::before, .hl-cut i::after { content: ""; position: absolute; left: -1.5px; width: 5px; height: 2px; background: #1b1d3a; }
 .hl-cut i::before { top: -1px; }
 .hl-cut i::after { bottom: -1px; }
+/* Outside Highlight mode the placed highlights stay on the default timeline (10594:53764): 7px bar 2px above the bottom of
+   the 3-day box; annotation ticks over a highlight stop 2px above it (hlShortenTicks) */
 /* Highlight on the timeline, in progress or placed ("Video highlight portion" 10731:28395): solid #f0d333, 7px high,
    2px #5b4d08 edges; no brackets or side shading */
 .hl-cut { height: 7px; box-sizing: border-box; background: #f0d333; border: solid #5b4d08; border-width: 0 2px; }
@@ -1459,6 +1461,7 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
     ov.insertAdjacentHTML('beforeend', annots.map(function (a) {
       return '<img class="annot-stroke" src="assets/annot-stroke.svg" alt="" style="left:' + pct(timeToFigmaX(span(a)[0])) + '">';
     }).join(''));
+    if (typeof hlShortenTicks === 'function') hlShortenTicks();
   }
 
   // ---- Menu ----
@@ -1915,7 +1918,7 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
   }
   function renderHighlights() {
     if (!annotsEl || SPAN === undefined) return;
-    var h = '', shown = hlOn ? highlights : [];   // video highlights only show while Highlight mode is on
+    var h = '', shown = hlOn ? highlights : [];   // on the signal view, video highlights only show in Highlight mode
     shown.forEach(function (x, i) {
       var w = ((x.b - x.a) / 1000 / SPAN * 100).toFixed(4) + '%';
       h += '<div class="hl-area' + (i === hlHover ? ' is-hover' : '') + '" style="left:' + leftOf(x.a) + ';width:' + w + '"></div>' +
@@ -1928,13 +1931,27 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
     annotsEl.querySelectorAll('.hl-area, .hl-label, .hl-live').forEach(function (el) { el.remove(); });
     annotsEl.insertAdjacentHTML('beforeend', h);
     // Timeline: the cut in progress, and each finished highlight
-    var cuts = shown.map(function (x) { return [x.a, x.b, x.n]; });
+    var cuts = highlights.map(function (x) { return [x.a, x.b, x.n]; });  // on the timeline: in and out of Highlight mode
     if (hlStart !== null) { var n2 = hlCursorTime(); cuts.push([Math.min(hlStart, n2), Math.max(hlStart, n2)]); }
     ov.querySelectorAll('.hl-cut').forEach(function (el) { el.remove(); });
     ov.insertAdjacentHTML('beforeend', cuts.map(function (c) {
       var l = timeToFigmaX(c[0]), r = timeToFigmaX(c[1]);
       return '<div class="hl-cut"' + (c[2] ? ' data-n="' + c[2] + '"' : '') + ' style="left:' + pct(l) + ';width:max(' + ((r - l) / W * 100).toFixed(4) + '%, 4px)"><i class="a"></i><i class="b"></i></div>';
     }).join(''));
+    hlShortenTicks();
+  }
+  // Annotation ticks (the reader's annotations and the event markers) that cross a highlight bar on the timeline stop 2px
+  // above it (10594:53764); the others keep their full height
+  function hlShortenTicks() {
+    var bars = Array.prototype.map.call(ov.querySelectorAll('.hl-cut'), function (el) { return el.getBoundingClientRect(); });
+    ov.querySelectorAll('.annot-stroke, .events img, .events .sli').forEach(function (el) {
+      el.style.clipPath = '';
+      var r = el.getBoundingClientRect(), cut = 0;
+      bars.forEach(function (b) {
+        if (r.right > b.left && r.left < b.right && r.top < b.bottom && r.bottom > b.top - 2) cut = Math.max(cut, r.bottom - (b.top - 2));
+      });
+      if (cut > 0) el.style.clipPath = 'inset(0 0 ' + cut.toFixed(2) + 'px 0)';
+    });
   }
   hlBtn.addEventListener('click', function () { setHighlightMode(!hlOn); });
   // Video timeline strip: same span as the 3-day box, a separator at each midnight; returns the time under the cursor
