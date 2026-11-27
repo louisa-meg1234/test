@@ -536,17 +536,17 @@ img { display: block; max-width: none; }
 /* Timeline in Highlight mode ("Timeline + video highlights", 10663:2956): a 13px "Video timeline" strip (10671:18557) on
    top, split by day like the 3-day box, holds the video highlights and is where they are drawn; the 3-day box below shrinks
    to 24px (top 12px) and keeps navigating. Outside Highlight mode the timeline is unchanged. */
-.hl-strip { position: absolute; top: 0; height: 11px; left: 4.037%; width: 93.017%; display: none; z-index: 2; }
+.hl-strip { position: absolute; top: 0; height: 15px; left: 4.037%; width: 93.017%; display: none; z-index: 2; }
 /* "Highlight timeline" (10731:28391): one box per calendar day, yellow 20% over white, 1px #967f00 border, neighbours
    sharing their 1px edge */
 .hl-day { position: absolute; top: 0; bottom: 0; box-sizing: border-box; border: 1px solid #967f00;
   background: linear-gradient(rgba(243, 220, 92, 0.2), rgba(243, 220, 92, 0.2)), var(--white); }
 .sleep-timeline.hl-mode .hl-strip { display: block; }
-.sleep-timeline.hl-mode .ground, .sleep-timeline.hl-mode .days-box { top: 12px; height: 24px; }
-.sleep-timeline.hl-mode .day { top: 12px !important; height: 36px !important; }
-.sleep-timeline.hl-mode .annot-stroke { top: 14px; height: 20px; }
-.sleep-timeline.hl-mode .active-window { top: 11px; height: 26px; }
-.sleep-timeline.hl-mode .hl-cut { top: 2px; }
+.sleep-timeline.hl-mode .ground, .sleep-timeline.hl-mode .days-box { top: 16px; height: 21.34px; }  /* 10731:28454 */
+.sleep-timeline.hl-mode .day { top: 16px !important; height: 32.45px !important; }
+.sleep-timeline.hl-mode .annot-stroke { top: 18px; height: 17.34px; }
+.sleep-timeline.hl-mode .active-window { top: 15px; height: 23.34px; }
+.sleep-timeline.hl-mode .hl-cut { top: 2.73px; height: 9.55px; }  /* centred in the 15px strip (10731:28395) */
 /* the highlights' titles then open above the strip */
 .sleep-timeline.hl-mode .annot-tip.is-below { top: auto; bottom: calc(100% + 2px); }
 
