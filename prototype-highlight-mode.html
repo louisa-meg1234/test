@@ -366,8 +366,8 @@ img { display: block; max-width: none; }
 .hl-cursor kbd, .hl-cursor span { text-box: trim-both cap alphabetic; }
 .hl-cursor span { letter-spacing: 0.48px; }
 .hl-cursor.is-end span { letter-spacing: 0.6px; }
-/* Cut in progress on the Signal view: #1B1D3A 10% */
-.hl-live { position: absolute; top: calc(var(--h-band) - 0.07px); bottom: 20px; background: rgba(27, 29, 58, 0.1); pointer-events: none; }
+/* Cut in progress on the Signal view: the placed highlight's yellow (8%) */
+.hl-live { position: absolute; top: calc(var(--h-band) - 0.07px); bottom: 20px; background: rgba(240, 211, 51, 0.08); pointer-events: none; }
 /* Finished highlight on the Signal view (Grouped video highlight, Default 10663:2976 / Hovered 10663:2977) */
 .hl-area { position: absolute; top: calc(var(--h-band) - 0.07px); bottom: 20px; background: rgba(240, 211, 51, 0.08); pointer-events: none; }  /* yellow 8% */
 .hl-area.is-hover { background: rgba(240, 211, 51, 0.18); }  /* Hovered: yellow 18% */
@@ -389,11 +389,11 @@ img { display: block; max-width: none; }
 .hl-cut i::before, .hl-cut i::after { content: ""; position: absolute; left: -1.5px; width: 5px; height: 2px; background: #1b1d3a; }
 .hl-cut i::before { top: -1px; }
 .hl-cut i::after { bottom: -1px; }
-/* Finished highlight on the timeline (Video highlight 10731:28396): yellow 80%, dark-olive brackets and side shading */
-.hl-cut[data-n] { background: rgba(240, 211, 51, 0.8); }
-.hl-cut[data-n]::before { background: linear-gradient(to left, rgba(50, 42, 1, 0.2) 12%, rgba(50, 42, 1, 0) 74.5%); }
-.hl-cut[data-n]::after { background: linear-gradient(to right, rgba(50, 42, 1, 0.2) 12%, rgba(50, 42, 1, 0) 74.5%); }
-.hl-cut[data-n] i, .hl-cut[data-n] i::before, .hl-cut[data-n] i::after { background: #5b4d08; }
+/* Highlight on the timeline, in progress or placed (Video highlight 10731:28396): yellow 80%, dark-olive brackets and side shading */
+.hl-cut { background: rgba(240, 211, 51, 0.8); }
+.hl-cut::before { background: linear-gradient(to left, rgba(50, 42, 1, 0.2) 12%, rgba(50, 42, 1, 0) 74.5%); }
+.hl-cut::after { background: linear-gradient(to right, rgba(50, 42, 1, 0.2) 12%, rgba(50, 42, 1, 0) 74.5%); }
+.hl-cut i, .hl-cut i::before, .hl-cut i::after { background: #5b4d08; }
 .signals.hl-mode { cursor: pointer; }
 
 /* Video highlight menu, built like the annotation menu (same .am-* cards and lists):
