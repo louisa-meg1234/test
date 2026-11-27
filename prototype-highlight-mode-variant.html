@@ -538,10 +538,13 @@ img { display: block; max-width: none; }
    top, split by day like the 3-day box, holds the video highlights and is where they are drawn; the 3-day box below shrinks
    to 24px (top 12px) and keeps navigating. Outside Highlight mode the timeline is unchanged. */
 .hl-strip {
-  position: absolute; top: 0; height: 13px; left: 4.037%; width: 93.017%; box-sizing: border-box; display: none;
-  background: var(--white); border: 1px solid var(--grey-line); z-index: 2;
+  position: absolute; top: 0; height: 13px; left: 4.037%; width: 93.017%; box-sizing: border-box; display: none; z-index: 2;
 }
-.hl-strip i { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--grey-line); }
+/* One box per calendar day (Frame 14659, 10731:28391): white, 1px #9e9e9e; the day the signal window is on is tinted
+   yellow 16% with a #967f00 border, 1px shorter top and bottom */
+.hl-day { position: absolute; top: 0; bottom: 0; box-sizing: border-box; background: var(--white); border: 1px solid #9e9e9e; }
+.hl-day.is-active { top: 1px; bottom: 1px; border-color: #967f00;
+  background: linear-gradient(rgba(243, 220, 92, 0.16), rgba(243, 220, 92, 0.16)), var(--white); }
 .sleep-timeline.hl-mode .hl-strip { display: block; }
 .sleep-timeline.hl-mode .ground, .sleep-timeline.hl-mode .days-box { top: 12px; height: 24px; }
 .sleep-timeline.hl-mode .day { top: 12px !important; height: 36px !important; }
@@ -1327,6 +1330,7 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
     secEl.innerHTML = labels;
     gridEl.innerHTML = lines;
     awEl.style.left = pct(timeToFigmaX(view));
+    if (typeof hlActiveDay === 'function' && hlStrip) hlActiveDay();
     renderAnnots();
     updateVideo();
     updateMarker();
@@ -1946,10 +1950,19 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
   hlBtn.addEventListener('click', function () { setHighlightMode(!hlOn); });
   // Video timeline strip: same span as the 3-day box, a separator at each midnight; returns the time under the cursor
   var hlStrip = document.getElementById('hl-strip');
-  hlStrip.innerHTML = [1, 2, 3].map(function (d) {
-    var x = timeToFigmaX(Date.UTC(2026, 8, 27 + d));
-    return x > BOX_L && x < BOX_R ? '<i style="left:calc((100% + 2px) * ' + ((x - BOX_L) / (BOX_R - BOX_L)).toFixed(6) + ' - 1px)"></i>' : '';
+  // day boxes: [start, end] in Figma x, split at each midnight inside the box
+  var HL_DAYS = [BOX_L];
+  [1, 2, 3].forEach(function (d) { var x = timeToFigmaX(Date.UTC(2026, 8, 27 + d)); if (x > BOX_L && x < BOX_R) HL_DAYS.push(x); });
+  HL_DAYS.push(BOX_R);
+  hlStrip.innerHTML = HL_DAYS.slice(0, -1).map(function (x, k) {
+    var f0 = (x - BOX_L) / (BOX_R - BOX_L), f1 = (HL_DAYS[k + 1] - BOX_L) / (BOX_R - BOX_L);
+    return '<span class="hl-day" style="left:' + (f0 * 100).toFixed(4) + '%;width:' + ((f1 - f0) * 100).toFixed(4) + '%"></span>';
   }).join('');
+  // the day under the centre of the signal window
+  function hlActiveDay() {
+    var x = timeToFigmaX(view + SPAN * 500);
+    hlStrip.querySelectorAll('.hl-day').forEach(function (el, k) { el.classList.toggle('is-active', x >= HL_DAYS[k] && x < HL_DAYS[k + 1]); });
+  }
   function stripHit(e) {
     if (!hlOn) return null;
     var b = hlStrip.getBoundingClientRect();
