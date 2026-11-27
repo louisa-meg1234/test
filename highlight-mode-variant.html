@@ -1147,10 +1147,10 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
     var a = ANCHORS[i], b = ANCHORS[i + 1];
     return a[to] + (v - a[from]) * (b[to] - a[to]) / (b[from] - a[from]);
   }
-  // Variant: the 3-day box is a plain linear 72h scale, 2026/09/27 15:24 → 2026/09/30 15:24 (hypnograms are hidden here,
+  // Variant: the 3-day box is a plain linear scale, 2026/09/28 15:00 → 2026/09/30 15:24 (hypnograms are hidden here,
   // so their anchors no longer drive it). Everything time-related (tooltip, markers, window, highlights, popup) reads this.
   var BOX_L = 78.43, BOX_R = 1863;
-  var REC_START = Date.UTC(2026, 8, 27, 15, 24), REC_END = REC_START + 72 * 3600000;
+  var REC_START = Date.UTC(2026, 8, 28, 15, 0), REC_END = Date.UTC(2026, 8, 30, 15, 24);   // recording 28/09 15:00 → 30/09 15:24
   function figmaXToTime(x) { return REC_START + (x - BOX_L) * (REC_END - REC_START) / (BOX_R - BOX_L); }
   function timeToFigmaX(t) { return BOX_L + (t - REC_START) * (BOX_R - BOX_L) / (REC_END - REC_START); }
   function two(n) { return (n < 10 ? '0' : '') + n; }

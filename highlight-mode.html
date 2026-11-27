@@ -1153,6 +1153,8 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
   function fmtDate(t) { return t.getUTCFullYear() + '/' + two(t.getUTCMonth() + 1) + '/' + two(t.getUTCDate()); }
   function fmtHour(t) { return two(t.getUTCHours()) + ':' + two(t.getUTCMinutes()); }
   var BOX_L = 78.43, BOX_R = 1863;
+  // Recording: 2026/09/28 15:00 → 2026/09/30 15:24, linear across the 3-day box (replaces the hypnogram anchors above)
+  ANCHORS = [[BOX_L, Date.UTC(2026, 8, 28, 15, 0)], [BOX_R, Date.UTC(2026, 8, 30, 15, 24)]];
   // Midnight markers inside the 3-day box: [day, top, height]; all markers (incl. the end one) share top 1.17 / bottom 48
   [[1, 1.17, 46.83], [2, 1.17, 46.83], [3, 1.17, 46.83]].forEach(function (d) {
     var t = Date.UTC(2026, 8, 27 + d[0]), x = timeToFigmaX(t);
