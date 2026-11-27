@@ -390,8 +390,8 @@ img { display: block; max-width: none; }
 .hl-cut i::before, .hl-cut i::after { content: ""; position: absolute; left: -1.5px; width: 5px; height: 2px; background: #1b1d3a; }
 .hl-cut i::before { top: -1px; }
 .hl-cut i::after { bottom: -1px; }
-/* Outside Highlight mode the placed highlights stay on the default timeline (10594:53764): 7px bar 2px above the bottom of
-   the 3-day box; annotation ticks over a highlight stop 2px above it (hlShortenTicks) */
+/* Bars only show in Highlight mode. (Outside it they used to stay on the default timeline, 10594:53764: 7px bar 2px above
+   the bottom of the 3-day box; annotation ticks over a bar stop 2px above it, hlShortenTicks) */
 /* Highlight on the timeline, in progress or placed ("Video highlight portion" 10731:28395): solid #f0d333, 7px high,
    2px #5b4d08 edges; no brackets or side shading */
 .hl-cut { height: 7px; box-sizing: border-box; background: #f0d333; border: solid #5b4d08; border-width: 0 2px; }
@@ -1934,7 +1934,7 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
     annotsEl.querySelectorAll('.hl-area, .hl-label, .hl-live').forEach(function (el) { el.remove(); });
     annotsEl.insertAdjacentHTML('beforeend', h);
     // Timeline: the cut in progress, and each finished highlight
-    var cuts = highlights.map(function (x) { return [x.a, x.b, x.n]; });  // on the timeline: in and out of Highlight mode
+    var cuts = shown.map(function (x) { return [x.a, x.b, x.n]; });  // on the timeline too, only in Highlight mode
     if (hlStart !== null) { var n2 = hlCursorTime(); cuts.push([Math.min(hlStart, n2), Math.max(hlStart, n2)]); }
     ov.querySelectorAll('.hl-cut').forEach(function (el) { el.remove(); });
     ov.insertAdjacentHTML('beforeend', cuts.map(function (c) {
