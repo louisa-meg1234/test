@@ -393,10 +393,10 @@ img { display: block; max-width: none; }
    the bottom of the 3-day box; annotation ticks over a bar stop 2px above it, hlShortenTicks) */
 /* Highlight on the timeline, in progress or placed ("Video highlight portion" 10731:28395): solid #f0d333, 7px high,
    2px #5b4d08 edges; no brackets or side shading */
-.hl-cut { height: 7px; box-sizing: border-box; background: #f5e795; border: solid #d2b305; border-width: 0 2px; }  /* 10734:37364 */
+.hl-cut { height: 7px; box-sizing: border-box; background: #ffe970; border: solid rgba(135, 115, 0, 0.25); border-width: 0 2px; }  /* 10734:37364: edges drawn over the fill */
 .hl-cut::before, .hl-cut::after, .hl-cut i { display: none; }
 /* the highlight being drawn: yellow at 80% so a placed highlight under it shows through */
-.hl-cut:not([data-n]) { background: rgba(245, 231, 149, 0.8); }
+.hl-cut:not([data-n]) { background: rgba(255, 233, 112, 0.8); }
 .signals.hl-mode { cursor: pointer; }
 
 /* Video highlight menu, built like the annotation menu (same .am-* cards and lists):
