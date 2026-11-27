@@ -379,7 +379,7 @@ img { display: block; max-width: none; }
 .hl-label span { text-box: trim-both cap alphabetic; }
 /* Timeline: Video active cut (10659:64692), 9px high, at the bottom of the 3-day box (its bottom caps just inside the
    box's bottom border): #1B1D3A 20% fill between two 2px I-beam ends (5px caps), fading out over 5px beyond each end */
-.hl-cut { position: absolute; top: 24.12px; height: 9px; z-index: 3; pointer-events: none; background: rgba(27, 29, 58, 0.2); }
+.hl-cut { position: absolute; top: 25.12px; height: 9px; z-index: 3; pointer-events: none; background: rgba(27, 29, 58, 0.2); }
 .hl-cut::before, .hl-cut::after { content: ""; position: absolute; top: 0; bottom: 0; width: 5px; }
 .hl-cut::before { right: 100%; background: linear-gradient(to left, rgba(27, 29, 58, 0.2) 12%, rgba(27, 29, 58, 0) 74.5%); }
 .hl-cut::after { left: 100%; background: linear-gradient(to right, rgba(27, 29, 58, 0.2) 12%, rgba(27, 29, 58, 0) 74.5%); }
@@ -389,11 +389,10 @@ img { display: block; max-width: none; }
 .hl-cut i::before, .hl-cut i::after { content: ""; position: absolute; left: -1.5px; width: 5px; height: 2px; background: #1b1d3a; }
 .hl-cut i::before { top: -1px; }
 .hl-cut i::after { bottom: -1px; }
-/* Highlight on the timeline, in progress or placed (Video highlight 10731:28396): yellow 80%, dark-olive brackets and side shading */
-.hl-cut { background: rgba(240, 211, 51, 0.8); }
-.hl-cut::before { background: linear-gradient(to left, rgba(50, 42, 1, 0.2) 12%, rgba(50, 42, 1, 0) 74.5%); }
-.hl-cut::after { background: linear-gradient(to right, rgba(50, 42, 1, 0.2) 12%, rgba(50, 42, 1, 0) 74.5%); }
-.hl-cut i, .hl-cut i::before, .hl-cut i::after { background: #5b4d08; }
+/* Highlight on the timeline, in progress or placed ("Video highlight portion" 10731:28395): solid #f0d333, 7px high,
+   2px #5b4d08 edges; no brackets or side shading */
+.hl-cut { height: 7px; box-sizing: border-box; background: #f0d333; border: solid #5b4d08; border-width: 0 2px; }
+.hl-cut::before, .hl-cut::after, .hl-cut i { display: none; }
 .signals.hl-mode { cursor: pointer; }
 
 /* Video highlight menu, built like the annotation menu (same .am-* cards and lists):
@@ -537,11 +536,11 @@ img { display: block; max-width: none; }
 /* Timeline in Highlight mode ("Timeline + video highlights", 10663:2956): a 13px "Video timeline" strip (10671:18557) on
    top, split by day like the 3-day box, holds the video highlights and is where they are drawn; the 3-day box below shrinks
    to 24px (top 12px) and keeps navigating. Outside Highlight mode the timeline is unchanged. */
-.hl-strip {
-  position: absolute; top: 0; height: 13px; left: 4.037%; width: 93.017%; box-sizing: border-box; display: none;
-  background: var(--white); border: 1px solid var(--grey-line); z-index: 2;
-}
-.hl-strip i { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--grey-line); }
+.hl-strip { position: absolute; top: 0; height: 11px; left: 4.037%; width: 93.017%; display: none; z-index: 2; }
+/* "Highlight timeline" (10731:28391): one box per calendar day, yellow 20% over white, 1px #967f00 border, neighbours
+   sharing their 1px edge */
+.hl-day { position: absolute; top: 0; bottom: 0; box-sizing: border-box; border: 1px solid #967f00;
+  background: linear-gradient(rgba(243, 220, 92, 0.2), rgba(243, 220, 92, 0.2)), var(--white); }
 .sleep-timeline.hl-mode .hl-strip { display: block; }
 .sleep-timeline.hl-mode .ground, .sleep-timeline.hl-mode .days-box { top: 12px; height: 24px; }
 .sleep-timeline.hl-mode .day { top: 12px !important; height: 36px !important; }
@@ -1940,15 +1939,18 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
     ov.querySelectorAll('.hl-cut').forEach(function (el) { el.remove(); });
     ov.insertAdjacentHTML('beforeend', cuts.map(function (c) {
       var l = timeToFigmaX(c[0]), r = timeToFigmaX(c[1]);
-      return '<div class="hl-cut"' + (c[2] ? ' data-n="' + c[2] + '"' : '') + ' style="left:' + pct(l) + ';width:max(' + ((r - l) / W * 100).toFixed(4) + '%, 2px)"><i class="a"></i><i class="b"></i></div>';
+      return '<div class="hl-cut"' + (c[2] ? ' data-n="' + c[2] + '"' : '') + ' style="left:' + pct(l) + ';width:max(' + ((r - l) / W * 100).toFixed(4) + '%, 4px)"><i class="a"></i><i class="b"></i></div>';
     }).join(''));
   }
   hlBtn.addEventListener('click', function () { setHighlightMode(!hlOn); });
   // Video timeline strip: same span as the 3-day box, a separator at each midnight; returns the time under the cursor
   var hlStrip = document.getElementById('hl-strip');
-  hlStrip.innerHTML = [1, 2, 3].map(function (d) {
-    var x = timeToFigmaX(Date.UTC(2026, 8, 27 + d));
-    return x > BOX_L && x < BOX_R ? '<i style="left:calc((100% + 2px) * ' + ((x - BOX_L) / (BOX_R - BOX_L)).toFixed(6) + ' - 1px)"></i>' : '';
+  var HL_DAYS = [BOX_L];  // day boxes, split at each midnight inside the 3-day box (Figma x)
+  [1, 2, 3].forEach(function (d) { var x = timeToFigmaX(Date.UTC(2026, 8, 27 + d)); if (x > BOX_L && x < BOX_R) HL_DAYS.push(x); });
+  HL_DAYS.push(BOX_R);
+  hlStrip.innerHTML = HL_DAYS.slice(0, -1).map(function (x, k) {
+    var f0 = (x - BOX_L) / (BOX_R - BOX_L), f1 = (HL_DAYS[k + 1] - BOX_L) / (BOX_R - BOX_L), last = k === HL_DAYS.length - 2;
+    return '<span class="hl-day" style="left:' + (f0 * 100).toFixed(4) + '%;width:calc(' + ((f1 - f0) * 100).toFixed(4) + '%' + (last ? '' : ' + 1px') + ')"></span>';
   }).join('');
   function stripHit(e) {
     if (!hlOn) return null;
