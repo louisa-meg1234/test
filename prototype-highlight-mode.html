@@ -395,6 +395,8 @@ img { display: block; max-width: none; }
    2px #5b4d08 edges; no brackets or side shading */
 .hl-cut { height: 7px; box-sizing: border-box; background: #f0d333; border: solid #5b4d08; border-width: 0 2px; }
 .hl-cut::before, .hl-cut::after, .hl-cut i { display: none; }
+/* the highlight being drawn: yellow at 80% so a placed highlight under it shows through */
+.hl-cut:not([data-n]) { background: rgba(240, 211, 51, 0.8); }
 .signals.hl-mode { cursor: pointer; }
 
 /* Video highlight menu, built like the annotation menu (same .am-* cards and lists):
