@@ -398,8 +398,6 @@ img { display: block; max-width: none; }
 .hl-cut::before, .hl-cut::after, .hl-cut i { display: none; }
 /* the highlight being drawn: yellow at 80% so a placed highlight under it shows through */
 .hl-cut:not([data-n]) { background: rgba(245, 231, 149, 0.8); }
-/* too narrow to show yellow between its edges: yellow only, no #d2b305 edges */
-.hl-cut.is-small { border-width: 0; }
 .signals.hl-mode { cursor: pointer; }
 
 /* Video highlight menu, built like the annotation menu (same .am-* cards and lists):
@@ -1979,8 +1977,6 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
       var l = timeToFigmaX(c[0]), r = timeToFigmaX(c[1]);
       return '<div class="hl-cut"' + (c[2] ? ' data-n="' + c[2] + '"' : '') + ' style="left:' + pct(l) + ';width:max(' + ((r - l) / W * 100).toFixed(4) + '%, 4px)"><i class="a"></i><i class="b"></i></div>';
     }).join(''));
-    // a bar under 8px wide would be almost all edge: it drops its dark edges and stays yellow
-    ov.querySelectorAll('.hl-cut').forEach(function (el) { el.classList.toggle('is-small', el.getBoundingClientRect().width < 8); });
     hlShortenTicks();
   }
   // Annotation ticks (the reader's annotations and the event markers) that cross a highlight bar on the timeline stop 2px
