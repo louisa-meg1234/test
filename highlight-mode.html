@@ -528,6 +528,11 @@ img { display: block; max-width: none; }
 .pp-save { width: 20px; height: 20px; margin-left: 2px; padding: 0; border: 0; background: none; cursor: pointer; display: flex; align-items: center; justify-content: center; }
 .pp-save svg { width: 18px; height: 18px; }
 .pp-save:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* Columns sized to their widest content and spread with equal gaps (set by ppColumns() after each render) */
+.pp.is-simple .pp-tr { gap: var(--pp-gap, 24px); }
+.pp.is-simple .pp-s1 { width: var(--pp-w1); } .pp.is-simple .pp-s2 { width: var(--pp-w2); } .pp.is-simple .pp-s3 { width: var(--pp-w3); }
+.pp.is-simple .pp-s4 { width: var(--pp-w4); max-width: 188px; padding-right: 0; } .pp.is-simple .pp-s5 { width: var(--pp-w5); justify-content: center; }
+.pp.is-simple .pp-measure .pp-tr > span { width: max-content !important; max-width: none; }
 
 /* Timeline in Highlight mode ("Timeline + video highlights", 10663:2956): a 13px "Video timeline" strip (10671:18557) on
    top, split by day like the 3-day box, holds the video highlights and is where they are drawn; the 3-day box below shrinks
@@ -2211,6 +2216,20 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
              '<span class="pp-s3">' + ppDur(x.b - x.a) + '</span><span class="pp-s4">' + esc(hlName(x)) + '</span>' +
              '<span class="pp-s5"><button type="button" class="pp-save" role="checkbox" aria-checked="' + !!x.saved + '" aria-label="Save ' + esc(hlName(x)) + '" data-save="' + i + '">' + (x.saved ? CHECK_ON : CHECK_OFF) + '</button></span></div>';
     }).join('') || '<div class="pp-empty">No video highlight.</div>';
+    ppColumns();
+  }
+  // Equal spacing: each column takes its widest cell (header included, titles capped at 188px), and the room left in the
+  // row is shared equally between the 4 gaps
+  function ppColumns() {
+    var table = document.querySelector('.pp-table'), rows = table.querySelectorAll('.pp-tr');
+    table.classList.add('pp-measure');
+    var w = [0, 0, 0, 0, 0];
+    rows.forEach(function (r) { Array.prototype.forEach.call(r.children, function (c, k) { if (k < 5) w[k] = Math.max(w[k], Math.ceil(c.getBoundingClientRect().width) + 1); /* +1px: no ellipsis from sub-pixel text */ }); });
+    table.classList.remove('pp-measure');
+    w[3] = Math.min(w[3], 188);
+    var inner = table.clientWidth - 24, gap = Math.max(12, (inner - w.reduce(function (a, b) { return a + b; }, 0)) / 4);
+    w.forEach(function (v, k) { table.style.setProperty('--pp-w' + (k + 1), v + 'px'); });
+    table.style.setProperty('--pp-gap', gap.toFixed(2) + 'px');
   }
   function ppRender() {
     if (PP_SIMPLE) { ppRenderSimple(); return; }
