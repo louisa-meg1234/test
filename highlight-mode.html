@@ -2004,8 +2004,10 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
   hlBtn.addEventListener('click', function () { setHighlightMode(!hlOn); });
   // Video timeline strip: same span as the 3-day box, a separator at each midnight; returns the time under the cursor
   var hlStrip = document.getElementById('hl-strip');
-  var HL_DAYS = [BOX_L];  // day boxes, split at each midnight inside the 3-day box (Figma x)
-  [1, 2, 3].forEach(function (d) { var x = timeToFigmaX(Date.UTC(2026, 8, 27 + d)); if (x > BOX_L && x < BOX_R) HL_DAYS.push(x); });
+  // day boxes, split at each midnight inside the 3-day box (Figma x). They start where the video starts (2 hours into the
+  // recording): the first 2 hours have no highlight timeline, showing they can't be highlighted
+  var HL_X0 = Math.max(BOX_L, timeToFigmaX(VIDEO_T0)), HL_DAYS = [HL_X0];
+  [1, 2, 3].forEach(function (d) { var x = timeToFigmaX(Date.UTC(2026, 8, 27 + d)); if (x > HL_X0 && x < BOX_R) HL_DAYS.push(x); });
   HL_DAYS.push(BOX_R);
   hlStrip.innerHTML = HL_DAYS.slice(0, -1).map(function (x, k) {
     var f0 = (x - BOX_L) / (BOX_R - BOX_L), f1 = (HL_DAYS[k + 1] - BOX_L) / (BOX_R - BOX_L), last = k === HL_DAYS.length - 2;
@@ -2015,8 +2017,8 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
     if (!hlOn) return null;
     var b = hlStrip.getBoundingClientRect();
     if (!b.width || e.clientX < b.left || e.clientX > b.right || e.clientY < b.top || e.clientY > b.bottom) return null;
-    var o = ov.getBoundingClientRect();
-    return figmaXToTime(X0 + (e.clientX - o.left) / o.width * W);
+    var o = ov.getBoundingClientRect(), t = figmaXToTime(X0 + (e.clientX - o.left) / o.width * W);
+    return t < VIDEO_T0 ? null : t;   // nothing to highlight before the video starts
   }
   // In Highlight mode the Video timeline strip is where highlights are drawn on the timeline: a click (or D / F) in it
   // starts a highlight, then ends it, at the time under the cursor, just like in the signal grid; hovering it while a
