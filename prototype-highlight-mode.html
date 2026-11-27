@@ -1726,12 +1726,24 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
   function updateVideo() {  // called from render()
     if (!vMarker || SPAN === undefined) return;
     vMarker.style.left = (vf * 100).toFixed(4) + '%';
+    vSyncAvailability();
     if (!vAuto) vSeek();
+  }
+  // No video during the first 2 hours of the recording: while the video marker is in that span, the video marker
+  // (camera) and the Highlight button are unavailable, the preview closes and Highlight mode turns off
+  var VIDEO_T0 = T_START + 2 * 3600000;
+  function vSyncAvailability() {
+    var av = vFileOk && vMarkerTime() >= VIDEO_T0;
+    if (av === vAvailable) return;
+    vAvailable = av;
+    if (!av) showPreview(false);
+    setMarkerState();
+    if (hlBtn) hlAvailability();
   }
   vid.muted = true; vid.volume = 0;  // the video is always silent
   // Marker state: 'unselected' (available, preview closed), 'active' (preview open), 'disabled' (no video: the file
   // fails to load, or ?video=off in the address to preview this state)
-  var vAvailable = !/[?&]video=off\b/.test(location.search);
+  var vFileOk = !/[?&]video=off\b/.test(location.search), vAvailable = vFileOk;
   function setMarkerState() {
     var st = !vAvailable ? 'disabled' : vPrev.hidden ? 'unselected' : 'active';
     ['unselected', 'active', 'disabled'].forEach(function (k) { vMarker.classList.toggle('is-' + k, k === st); });
@@ -1740,8 +1752,8 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
     vMarker.dataset.st = st;   // its tooltip says when the video is unavailable
     vMarker.setAttribute('aria-disabled', st === 'disabled' ? 'true' : 'false');
   }
-  vid.addEventListener('error', function () { vAvailable = false; showPreview(false); setMarkerState(); });
-  if (!vAvailable) vid.removeAttribute('src');
+  vid.addEventListener('error', function () { vFileOk = vAvailable = false; showPreview(false); setMarkerState(); });
+  if (!vFileOk) vid.removeAttribute('src');
   vid.addEventListener('loadedmetadata', vSeek);
 
   function showPreview(on) {
@@ -1912,7 +1924,8 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
   // Same merge rule as a drawn highlight; deleting the annotation removes its highlight.
   var ANNOT_HL_MARGIN = 30000;
   function hlFromAnnot(an) {
-    var s = span(an), a = Math.max(s[0] - ANNOT_HL_MARGIN, T_START), b = Math.min(s[1] + ANNOT_HL_MARGIN, T_END);
+    var s = span(an), a = Math.max(s[0] - ANNOT_HL_MARGIN, VIDEO_T0), b = Math.min(s[1] + ANNOT_HL_MARGIN, T_END);
+    if (b <= a) return;   // annotation within the first 2 hours: no video to highlight
     if (!highlights.some(function (x) { return x.a <= a && x.b >= b; })) {
       highlights = highlights.filter(function (x) { return !(x.a >= a && x.b <= b); });
       highlights.push({ a: a, b: b, title: an.label, annot: an });
@@ -1933,6 +1946,8 @@ button.window-select { min-width: 78.79px; justify-content: space-between; borde
     if (hlStart === null) return;
     var a = Math.min(hlStart, t), b = Math.max(hlStart, t);
     if (b - a < 100) b = a + 100;                        // a click on the start itself still leaves a visible highlight
+    a = Math.max(a, VIDEO_T0);                           // no video in the first 2 hours: the highlight starts after them
+    if (b <= a) { hlStart = null; hlSetCursorTip(); renderHighlights(); return; }
     // A highlight lying entirely inside another is merged into the larger one: a new highlight swallows the ones it
     // covers, and one drawn inside an existing highlight adds nothing. Titles are then renumbered 1, 2, … in time order.
     var inside = highlights.some(function (x) { return x.a <= a && x.b >= b; });
